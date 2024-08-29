@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English Test</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+<style>
+  body { font-family: Arial, sans-serif; }
+  .timer { font-size: 24px; font-weight: bold; }
+  .question { margin-bottom: 20px; }
+  .options label { display: block; margin-bottom: 10px; }
+  .essay { margin-top: 30px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>English Test</h1>
+  <div class="timer" id="timer">Time: 20:00</div>
+  <form id="testForm">
+    <!-- User info -->
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+    <label for="email">Email:</label>
+    <input type="email" id="email" required>
+    <!-- Test questions will be generated here -->
+    <div id="questions"></div>
+    <!-- Essay section -->
+    <div class="essay">
+      <select id="essayTopic"></select>
+      <textarea id="essayText" maxlength="400"></textarea>
+      <div id="wordCount">0/400 words</div>
+    </div>
+    <button type="submit">Submit Test</button>
+  </form>
+  <div id="results"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const questionsContainer = document.getElementById('questions');
+      const timerDisplay = document.getElementById('timer');
+      const essayTopicSelect = document.getElementById('essayTopic');
+      const essayText = document.getElementById('essayText');
+      const wordCountDisplay = document.getElementById('wordCount');
+      const form = document.getElementById('testForm');
+      const resultsDisplay = document.getElementById('results');
+
+      let tasks;
+      let timerInterval;
+      let timeLeft = 20 * 60; // 20 minutes in seconds
+
+      fetch('test.json')
+        .then(response => response.json())
+        .then(data => {
+          tasks = data.tasks.sort(() => 0.5 - Math.random()).slice(0, 10);
+          const essayTopics = data.essayTopics;
+          essayTopics.forEach((topic, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.text = topic;
+            essayTopicSelect.appendChild(option);
+          });
+
+          tasks.forEach((task, index) => {
+            const questionHTML = `
+              <div class="question">
+                <p>${index + 1}. ${task.question}</p>
+                <div class="options">
+                  ${task.answers.sort(() => 0.5 - Math.random()).map((answer, ansIndex) => `
+                    <label><input type="radio" name="question${index}" value="${ansIndex}"> ${answer}</label>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            questionsContainer.innerHTML += questionHTML;
+          });
+
+          startTimer();
+        })  .catch(error => {
+    console.error('Error fetching test data:', error);
+  });;
+
+      function startTimer() {
+        timerInterval = setInterval(() => {
+          const minutes = Math.floor(timeLeft / 60);
+          const seconds = timeLeft % 60;
+          timerDisplay.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          timeLeft--;
+          if (timeLeft < 0) {
+            clearInterval(timerInterval);
+            submitForm();
+          }
+        }, 1000);
+      }
+
+      essayText.addEventListener('input', () => {
+        const count = essayText.value.split(/\s+/).filter(word => word.length > 0).length;
+        wordCountDisplay.textContent = `${count}/400 words`;
+      });
+
+      form.addEventListener('submit', function(event) {
+        event.preventDefault();
+        submitForm();
+      });
+
+      function submitForm() {
+        clearInterval(timerInterval);
+        const userAnswers = Array.from(document.querySelectorAll('.question input[type="radio"]:checked')).map(input => parseInt(input.value));
+        const score = userAnswers.reduce((acc, answer, index) => {
+          return acc + (answer === tasks[index].correct ? 1 : 0);
+        }, 0);
+
+        resultsDisplay.innerHTML = `Your score is ${score} out of 10.<br>Your essay will be reviewed manually.`;
+      }
+    });
+    </script>
+</body>
+</html>

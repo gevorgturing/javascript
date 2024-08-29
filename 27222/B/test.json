@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "question": "What does 'circumspect' mean?",
+      "answers": ["Careful", "Fast", "Loud", "Bright"],
+      "correct": 0
+    },
+    {
+      "question": "Choose the correct form: 'He has ____ the book.'",
+      "answers": ["read", "readed", "red", "reading"],
+      "correct": 0
+    }
+  ],
+  "essayTopics": [
+    "The impact of technology on human behavior.",
+    "Should college tuition be free for all students?",
+    "The role of renewable energy sources in future cities.",
+    "The importance of mental health awareness in schools.",
+    "How does social media affect personal relationships?"
+  ]
+}

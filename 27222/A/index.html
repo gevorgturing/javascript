@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Test Application</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .question, #essaySection { margin: 20px 0; }
+        #timer { font-size: 1.5em; text-align: center; }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>English Test</h1>
+        <div id="timer"></div>
+        <form id="testForm">
+            <div id="questions"></div>
+            <div id="essaySection">
+                <h2>Essay (Optional)</h2>
+                <select id="essayTopic"></select>
+                <textarea id="essayContent" rows="10" placeholder="Write your essay here..."></textarea>
+                <p>Word Count: <span id="wordCount">0</span>/400</p>
+            </div>
+            <div>
+                <input type="text" id="userName" placeholder="Name" required>
+                <input type="email" id="userEmail" placeholder="Email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Test</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        let questions, essayTopics;
+        let timeLeft = 1200; // 20 minutes in seconds
+        let timerInterval;
+
+        // Fetch data from JSON
+        $.getJSON('test.json', function(data) {
+            questions = data.questions;
+            essayTopics = data.essayTopics;
+            loadQuestions();
+            loadEssayTopics();
+            startTimer();
+        });
+
+        function loadQuestions() {
+            let selectedQuestions = shuffle(questions).slice(0, 10);
+            $('#questions').html(selectedQuestions.map((q, index) => `
+                <div class="question">
+                    <h4>${index + 1}. ${q.question}</h4>
+                    ${shuffle(q.choices).map(choice => `
+                        <div><input type="radio" name="q${index}" value="${choice}"> ${choice}</div>
+                    `).join('')}
+                </div>
+            `).join(''));
+        }
+
+        function loadEssayTopics() {
+            $('#essayTopic').html(essayTopics.map(topic => `<option>${topic}</option>`));
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up!');
+                    $('#testForm').submit();
+                }
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                $('#timer').text(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+            }, 1000);
+        }
+
+        $('#essayContent').on('input', function() {
+            let count = this.value.trim().split(/\s+/).length;
+            $('#wordCount').text(count);
+        });
+
+        $('#testForm').on('submit', function(e) {
+            e.preventDefault();
+            clearInterval(timerInterval);
+            let score = 0;
+            questions.slice(0, 10).forEach((q, index) => {
+                if($(`input[name=q${index}]:checked`).val() === q.answer) score++;
+            });
+            $('#result').html(`<h2>Your Score: ${score}/10</h2>`);
+        });
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+    });
+    </script>
+</body>
+</html>
