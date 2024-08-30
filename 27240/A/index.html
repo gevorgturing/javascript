@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magic Square Checker</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+    body { font-family: 'Arial', sans-serif; }
+    .container { max-width: 500px; margin: 20px auto; }
+    table { border-collapse: collapse; margin: 20px 0; }
+    td { width: 100px; height: 100px; text-align: center; }
+    input {
+        width: 100px;
+        height: 100px;
+        text-align: center;
+        font-size: 50px;
+        font-weight: bold;
+        border: 2px solid #ddd;
+        box-sizing: border-box;
+    }
+    .sum { background-color: #f0f0f0; }
+    button { margin: 10px 0; padding: 10px; }
+    @media (max-width: 600px) {
+        td, input { width: 80px; height: 80px; font-size: 30px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Create a Magic Square</h2>
+    <p>Enter numbers 1-9 such that each row, column, and diagonal sums to the same value.</p>
+    <table id="magicSquare"></table>
+    <button id="resetBtn">Reset</button>
+    <button id="showAnswer" style="display:none;">Show Correct Answer</button>
+</div>
+
+<script>
+$(document).ready(function() {
+    const $table = $('#magicSquare');
+    const magicNumber = 15; // Sum for a 3x3 magic square
+    let correctAnswer = [8, 1, 6, 3, 5, 7, 4, 9, 2];
+
+    function buildTable() {
+        for(let i = 0; i < 3; i++) {
+            let row = $('<tr>');
+            for(let j = 0; j < 3; j++) {
+                row.append($('<td>').append($('<input>', {type: 'text', maxlength: '1', pattern: '[1-9]'})));
+            }
+            $table.append(row);
+        }
+        // Add sum cells
+        for(let i = 0; i < 3; i++) {
+            $table.find('tr').append($('<td class="sum">').text('0'));
+            $table.append($('<tr>').append($('<td class="sum">').text('0')));
+        }
+        $table.find('tr:last').append($('<td class="sum">').text('0'));
+    }
+
+    function loadFromStorage() {
+        $('input').each(function(index) {
+            let val = localStorage.getItem('cell' + index);
+            $(this).val(val || '');
+        });
+    }
+
+    function saveToStorage() {
+        $('input').each(function(index) {
+            localStorage.setItem('cell' + index, $(this).val());
+        });
+    }
+
+    function calculateSums() {
+        let sums = {rows: [], cols: [], diags: [0, 0]};
+        $('input').each(function(index) {
+            let val = parseInt($(this).val()) || 0;
+            let row = Math.floor(index / 3), col = index % 3;
+            sums.rows[row] = (sums.rows[row] || 0) + val;
+            sums.cols[col] = (sums.cols[col] || 0) + val;
+            if (row === col) sums.diags[0] += val;
+            if (row + col === 2) sums.diags[1] += val;
+        });
+        $('.sum').each(function(index) {
+            $(this).text(sums.rows[index] || sums.cols[index] || sums.diags[index - 6] || 0);
+        });
+    }
+
+    function resetTable() {
+        $('input').val('').trigger('input');
+        localStorage.clear();
+    }
+
+    function showAnswer() {
+        $('input').each(function(index) {
+            $(this).val(correctAnswer[index]);
+        });
+        calculateSums();
+    }
+
+    buildTable();
+    loadFromStorage();
+
+    $('input').on('input', function() {
+        this.value = this.value.replace(/[^1-9]/g,''); // Ensure only 1-9
+        saveToStorage();
+        calculateSums();
+    });
+
+    $('#resetBtn').on('click', resetTable);
+
+    setTimeout(function() {
+        $('#showAnswer').show();
+    }, 30000);
+
+    $('#showAnswer').on('click', showAnswer);
+});
+</script>
+
+</body>
+</html>
