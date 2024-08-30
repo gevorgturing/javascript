@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Speed Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .word-container {
+            width: 50%;
+            height: 50vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .word-display {
+            position: absolute;
+            top: 0;
+            left: 10px;
+            transition: top 10s linear;
+        }
+        .input-container {
+            width: 50%;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        #wordInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .speed-controls {
+            display: flex;
+            justify-content: space-between;
+            width: 50%;
+        }
+        .speed-controls button, #customSpeed {
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #scoreDisplay {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="word-container">
+        <div class="word-display" id="wordDisplay"></div>
+    </div>
+    <div class="input-container">
+        <input type="text" id="wordInput" placeholder="Type the word here">
+    </div>
+    <div class="speed-controls">
+        <button onclick="setSpeed(10)">Speed 10s</button>
+        <button onclick="setSpeed(20)">Speed 20s</button>
+        <button onclick="setSpeed(30)">Speed 30s</button>
+        <input type="number" id="customSpeed" min="2" max="60" placeholder="Custom speed (2-60s)">
+        <button onclick="setCustomSpeed()">Set</button>
+    </div>
+    <div id="scoreDisplay">Score: 0</div>
+
+    <script>
+        const words = ["hello", "world", "speed", "test", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "rapid"];
+        let currentWord = getRandomWord();
+        let speed = 10000; // default 10 seconds
+        let score = 0;
+        let correctCount = 0;
+        let wordDisplay = document.getElementById('wordDisplay');
+        let wordInput = document.getElementById('wordInput');
+        let scoreDisplay = document.getElementById('scoreDisplay');
+
+        function getRandomWord() {
+            return words[Math.floor(Math.random() * words.length)];
+        }
+
+        function updateWordDisplay() {
+            wordDisplay.textContent = currentWord;
+            wordDisplay.style.top = '0px';
+            setTimeout(() => {
+                wordDisplay.style.top = '100%';
+            }, 100);
+        }
+
+        function setSpeed(seconds) {
+            speed = seconds * 1000;
+            updateWordDisplay();
+        }
+
+        function setCustomSpeed() {
+            const customSpeed = document.getElementById('customSpeed').value;
+            if (customSpeed >= 2 && customSpeed <= 60) {
+                setSpeed(customSpeed);
+            }
+        }
+
+        function checkWord() {
+            if (wordInput.value === currentWord) {
+                score++;
+                correctCount++;
+                if (correctCount === 5) {
+                    speed = Math.max(speed - 1000, 5000); // Increase speed, max at 5 seconds
+                    correctCount = 0;
+                }
+                scoreDisplay.textContent = `Score: ${score}`;
+                wordInput.value = '';
+                currentWord = getRandomWord();
+                updateWordDisplay();
+            }
+        }
+
+        wordInput.addEventListener('input', checkWord);
+        updateWordDisplay();
+    </script>
+</body>
+</html>
