@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Maker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        .dark-mode { background-color: #1a202c; color: #f7fafc; }
+        .light-mode { background-color: #ffffff; color: #1a202c; }
+        #cvPreview { display: none; }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="container mx-auto p-4">
+        <button onclick="toggleMode()" class="mb-4">Toggle Dark/Light Mode</button>
+        <div id="cvForm">
+            <!-- Form fields for CV details -->
+            <input id="firstName" placeholder="First Name" class="mb-2">
+            <input id="lastName" placeholder="Last Name" class="mb-2">
+            <!-- Additional fields for contact, photo upload, summary, etc. -->
+            <button onclick="previewCV()" class="bg-blue-500 text-white p-2">Preview</button>
+            <button onclick="downloadPDF()" class="bg-green-500 text-white p-2">Download PDF</button>
+            <button onclick="resetCV()" class="bg-red-500 text-white p-2">Reset</button>
+        </div>
+        <div id="cvPreview"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        function saveToLocalStorage() {
+            const cvData = {
+                firstName: document.getElementById('firstName').value,
+                // ... other fields ...
+            };
+            localStorage.setItem('cvData', JSON.stringify(cvData));
+        }
+
+        function loadFromLocalStorage() {
+            const cvData = JSON.parse(localStorage.getItem('cvData') || '{}');
+            for (let key in cvData) {
+                if (document.getElementById(key)) {
+                    document.getElementById(key).value = cvData[key];
+                }
+            }
+        }
+
+        function previewCV() {
+            document.getElementById('cvForm').style.display = 'none';
+            document.getElementById('cvPreview').style.display = 'block';
+            document.getElementById('cvPreview').innerHTML = document.getElementById('cvForm').innerHTML.replace(/<input.*?>/g, match => {
+                return document.querySelector(match).value;
+            });
+        }
+
+        function editCV() {
+            document.getElementById('cvForm').style.display = 'block';
+            document.getElementById('cvPreview').style.display = 'none';
+        }
+
+        function downloadPDF() {
+            const doc = new jsPDF();
+            const elementHTML = document.getElementById('cvPreview').innerHTML;
+            doc.fromHTML(elementHTML, 15, 15, {
+                'width': 170
+            });
+            doc.save('cv.pdf');
+        }
+
+        function resetCV() {
+            if(confirm('Are you sure?')) {
+                localStorage.removeItem('cvData');
+                location.reload();
+            }
+        }
+
+        function toggleMode() {
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+        }
+
+        // Event listeners for auto-saving
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', saveToLocalStorage);
+        });
+
+        // Load saved data on page load
+        window.onload = loadFromLocalStorage;
+    </script>
+</body>
+</html>
