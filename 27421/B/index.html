@@ -167,16 +167,11 @@ function generateCVHTML() {
 }
 
 function downloadPDF() {
-
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.html(document.getElementById('cvPreview'), {
-        callback: function (doc) {
-            doc.save('myCV.pdf');
-        },
-        x: 10,
-        y: 10
+    const doc = new jspdf.jsPDF();
+    doc.fromHTML(generateCVHTML(), 15, 15, {
+        'width': 170
     });
+    doc.save('myCV.pdf');
 }
 
 document.getElementById('cvForm').addEventListener('input', updateLocalStorage);
