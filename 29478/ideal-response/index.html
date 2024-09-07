@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customizable Calendar App</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5/main.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<style>
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --background-color: #f4f4f4;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: var(--background-color);
+    margin: 0;
+    padding: 0;
+}
+
+.calendar-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+#calendar {
+    margin-top: 20px;
+}
+
+.fc-event {
+    cursor: move;
+}
+
+/* Theme customization */
+.light-theme {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --background-color: #ffffff;
+}
+
+.dark-theme {
+    --primary-color: #9b59b6;
+    --secondary-color: #34495e;
+    --background-color: #2c3e50;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fc-toolbar-chunk {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+/* Animation for view switching */
+.view-transition {
+    transition: all 0.5s ease;
+}
+
+/* Tooltips */
+.tippy-box[data-theme~='custom'] {
+    background-color: var(--primary-color);
+    color: white;
+}
+</style>
+</head>
+<body class="light-theme">
+<div class="calendar-container">
+    <button onclick="changeTheme('light')">Light Theme</button>
+    <button onclick="changeTheme('dark')">Dark Theme</button>
+    <div id="calendar"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/draggable@1.0.0-beta.12/dist/draggable.min.js"></script>
+<script>
+
+function changeTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.remove('dark-theme');
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+        document.body.classList.add('dark-theme');
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        editable: true,
+        selectable: true, // Enable date selection
+        eventDrop: function(info) {
+            console.log('Event dropped', info.event);
+        },
+        eventResize: function(info) {
+            console.log('Event resized', info.event);
+        },
+        dateClick: function(info) {
+            let title = prompt("Enter the title of the event:");
+            if (title) {
+                calendar.addEvent({
+                    title: title,
+                    start: info.date,
+                    allDay: info.allDay
+                });
+            }
+        },
+        eventClick: function(info) {
+            if (confirm("Are you sure you want to delete this event?")) {
+                info.event.remove(); // This removes the event from the calendar
+            }
+        },
+        eventDidMount: function(info) {
+            tippy(info.el, {
+                content: `<strong>${info.event.title}</strong><br>Time: ${info.event.start.toLocaleTimeString()}`,
+                allowHTML: true,
+                theme: 'custom'
+            });
+        }
+    });
+
+    calendar.render();
+
+    // Drag functionality enhancement
+    new FullCalendar.Draggable(calendarEl, {
+        itemSelector: '.fc-event',
+        eventData: function(eventEl) {
+            return { title: eventEl.innerText };
+        }
+    });
+
+    // Tooltips
+    tippy('.fc-event', {
+        content: 'Loading...',
+        allowHTML: true,
+        onShow(instance) {
+            const event = calendar.getEventById(instance.reference.id);
+            instance.setContent(`<strong>${event.title}</strong><br>Time: ${event.start.toLocaleTimeString()}`);
+        },
+        theme: 'custom',
+    });
+
+
+    // Notification setup - this would need additional setup for actual reminders
+    function setupNotifications() {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            // Setup notifications for events
+        }
+    }
+
+    setupNotifications();
+});
+</script>
+</body>
+</html>
