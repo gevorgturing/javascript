@@ -4,87 +4,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Function Plotter</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/mathjs@9.4.4/dist/math.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        #graph {
-            width: 100%;
-            height: 500px;
-        }
-        .example-button {
-            margin: 5px;
+        body { font-family: 'Arial', sans-serif; background: #f4f4f9; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        #plot { width: 100%; height: 400px; margin-bottom: 20px; }
+        input[type="text"] { width: calc(100% - 22px); padding: 10px; margin: 10px 0; }
+        button { padding: 10px 15px; background-color: #007BFF; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .examples { margin-top: 20px; }
+        .example { background: #e9ecef; padding: 10px; margin: 5px 0; border-left: 4px solid #007BFF; }
+        .copy-btn { float: right; background: #6c757d; }
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            #plot { height: 300px; }
         }
     </style>
 </head>
 <body>
-    <section class="section">
-        <div class="container">
-            <h1 class="title">Mathematical Function Plotter</h1>
-            <p class="subtitle">Enter a function to plot it. Use 'x' as the variable.</p>
 
-            <!-- Input Field -->
-            <div class="field">
-                <label class="label">Function:</label>
-                <div class="control">
-                    <input id="function-input" class="input" type="text" placeholder="e.g., sin(x) + x^2">
-                </div>
-            </div>
+<div class="container">
+    <h2>Mathematical Function Plotter</h2>
+    <input type="text" id="functionInput" placeholder="Enter your function here (e.g., sin(x) + ln(x))">
+    <button onclick="plotFunction()">Plot</button>
+    <div id="plot"></div>
 
-            <!-- Examples -->
-            <div class="examples">
-                <button class="button is-info example-button" onclick="setExample('sin(x) + x^2')">Example 1</button>
-                <button class="button is-info example-button" onclick="setExample('x^3 - 3*x + 1')">Example 2</button>
-                <button class="button is-info example-button" onclick="setExample('ln(abs(x))')">Example 3</button>
-                <button class="button is-info example-button" onclick="setExample('e^x*cos(x)')">Example 4</button>
-                <button class="button is-info example-button" onclick="setExample('1/(x^2 + 1)')">Example 5</button>
-            </div>
-
-            <!-- Plot Area -->
-            <div id="graph"></div>
-
-            <!-- Instructions -->
-            <p>Zoom by scrolling, pan by dragging, and hover for coordinates.</p>
+    <div class="examples">
+        <h3>Examples:</h3>
+        <div class="example">
+            sin(x) * x^2 <button class="copy-btn" onclick="copyExample('sin(x) * x^2')">Copy</button>
         </div>
-    </section>
+        <div class="example">
+            ln(abs(x)) + exp(-x) <button class="copy-btn" onclick="copyExample('ln(abs(x)) + exp(-x)')">Copy</button>
+        </div>
+        <div class="example">
+            tan(x)/(1 + x^2) <button class="copy-btn" onclick="copyExample('tan(x)/(1 + x^2)')">Copy</button>
+        </div>
+        <div class="example">
+            sqrt(x^3 - x + 1) <button class="copy-btn" onclick="copyExample('sqrt(x^3 - x + 1)')">Copy</button>
+        </div>
+        <div class="example">
+            (sin(x))^2 + cos(x) <button class="copy-btn" onclick="copyExample('(sin(x))^2 + cos(x)')">Copy</button>
+        </div>
+    </div>
+</div>
 
-    <script>
-        const graphDiv = document.getElementById('graph');
-        const inputField = document.getElementById('function-input');
+<script src="https://cdn.jsdelivr.net/npm/mathjs@9.4.0/dist/math.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    function plotFunction() {
+        const expr = document.getElementById('functionInput').value;
+        const x = math.range(-10, 10, 0.1).toArray();
+        let y;
+        try {
+            y = x.map(x => math.evaluate(expr, {x}));
 
-        function plotFunction(func) {
-            const xValues = math.range(-10, 10, 0.1).toArray();
-            const yValues = xValues.map(x => {
-                try {
-                    return math.eval(func, { x });
-                } catch (e) {
-                    return null;
+            // Find critical points (simplified approach: look for local minima/maxima)
+            let criticalPoints = [];
+            for(let i = 1; i < y.length - 1; i++) {
+                if((y[i] > y[i-1] && y[i] > y[i+1]) || (y[i] < y[i-1] && y[i] < y[i+1])) {
+                    criticalPoints.push({x: x[i], y: y[i]});
                 }
-            });
+            }
 
-            const data = [{
-                x: xValues,
-                y: yValues,
+            const trace = {
+                x: x,
+                y: y,
                 type: 'scatter',
                 mode: 'lines',
-                line: {color: 'blue'}
-            }];
+                name: 'Function'
+            };
+
+            const criticalTrace = {
+                x: criticalPoints.map(p => p.x),
+                y: criticalPoints.map(p => p.y),
+                mode: 'markers',
+                type: 'scatter',
+                name: 'Critical Points',
+                marker: { size: 8, color: 'red' }
+            };
 
             const layout = {
-                title: 'Function Plot',
+                title: `Plot of ${expr}`,
+                xaxis: {title: 'X'},
+                yaxis: {title: 'Y'},
                 hovermode: 'closest'
             };
 
-            Plotly.newPlot(graphDiv, data, layout);
+            Plotly.newPlot('plot', [trace, criticalTrace], layout, {scrollZoom: true});
+        } catch (e) {
+            alert('Invalid function: ' + e.message);
         }
+    }
 
-        function setExample(example) {
-            inputField.value = example;
-            plotFunction(example);
-        }
+    function copyExample(text) {
+        document.getElementById('functionInput').value = text;
+    }
 
-        inputField.addEventListener('change', () => plotFunction(inputField.value));
-        plotFunction(inputField.value); // Initial plot
-    </script>
+    // Initial plot to show an example
+    plotFunction();
+</script>
+
 </body>
 </html>

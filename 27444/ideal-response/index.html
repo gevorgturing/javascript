@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Plotter</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Arial', sans-serif; }
+        #plot { height: 500px; }
+        .example-btn { margin: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <h2>Function Plotter</h2>
+    <div class="form-group">
+        <label for="functionInput">Enter your function (use 'x' as the variable):</label>
+        <input type="text" class="form-control" id="functionInput" placeholder="sin(x) * exp(-0.1 * x)">
+    </div>
+    <button onclick="plotFunction()" class="btn btn-primary">Plot</button>
+    <button onclick="resetView()" class="btn btn-secondary">Reset View</button>
+
+    <div id="plot"></div>
+    <div id="criticalPoints" class="mt-3"></div>
+
+    <h4>Examples:</h4>
+    <button class="btn btn-info example-btn" onclick="copyExample('sin(x) * exp(-0.1 * x)')">Example 1</button>
+    <button class="btn btn-info example-btn" onclick="copyExample('log(x^2 + 1) * cos(x)')">Example 2</button>
+    <button class="btn btn-info example-btn" onclick="copyExample('x^3 - 3*x^2 + x')">Example 3</button>
+    <button class="btn btn-info example-btn" onclick="copyExample('atan(x) * sqrt(x^2 + 1)')">Example 4</button>
+    <button class="btn btn-info example-btn" onclick="copyExample('(x^2 - 1) * (x - 2)^2')">Example 5</button>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
+<script>
+    math.import({
+        ln: function(x) {
+            return math.log(x);
+        }
+    });
+
+    function plotFunction() {
+        const func = document.getElementById('functionInput').value;
+        const x = math.range(-10, 10, 0.1).toArray();
+        const scope = {x: 0};
+        const y = x.map(v => {
+            scope.x = v;
+            return math.evaluate(func, scope);
+        });
+
+        const trace = {
+            x: x,
+            y: y,
+            type: 'scatter',
+            mode: 'lines'
+        };
+
+        const layout = {
+            title: 'Function Plot',
+            xaxis: {title: 'X Axis'},
+            yaxis: {title: 'Y Axis'}
+        };
+
+        Plotly.newPlot('plot', [trace], layout);
+
+        // Add zoom and pan functionality
+        Plotly.relayout('plot', {
+            'xaxis.autorange': true,
+            'yaxis.autorange': true
+        });
+
+        // Find and display critical points
+        findCriticalPoints(func, x, y);
+    }
+
+    function resetView() {
+        Plotly.relayout('plot', {
+            'xaxis.range': [-10, 10],
+            'yaxis.range': null
+        });
+    }
+
+    function findCriticalPoints(func, x, y) {
+        let criticalPoints = [];
+        for(let i = 1; i < x.length - 1; i++) {
+            if((y[i-1] < y[i] && y[i+1] < y[i]) || (y[i-1] > y[i] && y[i+1] > y[i])) {
+                criticalPoints.push({x: x[i], y: y[i]});
+            }
+        }
+        let pointsDiv = document.getElementById('criticalPoints');
+        pointsDiv.innerHTML = criticalPoints.length ?
+            'Critical Points: ' + JSON.stringify(criticalPoints) : 'No critical points found in range.';
+    }
+
+    function copyExample(example) {
+        document.getElementById('functionInput').value = example;
+    }
+</script>
+
+</body>
+</html>

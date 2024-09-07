@@ -4,93 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Function Plotter</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
     <style>
-        body { font-family: 'Arial', sans-serif; }
-        #plot { height: 500px; }
-        .example-btn { margin: 5px; }
+        body { font-family: 'Arial', sans-serif; padding: 20px; }
+        #plot-container { height: 400px; margin: 20px 0; }
+        .controls, .examples { display: flex; flex-wrap: wrap; gap: 10px; }
+        input, button { padding: 10px; margin: 5px 0; }
+        .example-btn { background-color: #f0f0f0; border: 1px solid #ccc; cursor: pointer; }
+        .example-btn:hover { background-color: #e0e0e0; }
+        @media(max-width: 768px) {
+            #plot-container { height: 300px; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container mt-5">
+<div id="app">
     <h2>Function Plotter</h2>
-    <div class="form-group">
-        <label for="functionInput">Enter your function (use 'x' as the variable):</label>
-        <input type="text" class="form-control" id="functionInput" placeholder="sin(x) * exp(-0.1 * x)">
+    <input id="functionInput" type="text" placeholder="Enter function (e.g., sin(x^2))">
+    <button onclick="plotFunction()">Plot</button>
+    <div id="plot-container"></div>
+    <div class="controls">
+        <button onclick="zoomOut()">Zoom Out</button>
+        <button onclick="resetView()">Reset View</button>
     </div>
-    <button onclick="plotFunction()" class="btn btn-primary">Plot</button>
-    <button onclick="resetView()" class="btn btn-secondary">Reset View</button>
-
-    <div id="plot"></div>
-    <div id="criticalPoints" class="mt-3"></div>
-
-    <h4>Examples:</h4>
-    <button class="btn btn-info example-btn" onclick="copyExample('sin(x) * exp(-0.1 * x)')">Example 1</button>
-    <button class="btn btn-info example-btn" onclick="copyExample('log(x^2 + 1) * cos(x)')">Example 2</button>
-    <button class="btn btn-info example-btn" onclick="copyExample('x^3 - 3*x^2 + x')">Example 3</button>
-    <button class="btn btn-info example-btn" onclick="copyExample('atan(x) * sqrt(x^2 + 1)')">Example 4</button>
-    <button class="btn btn-info example-btn" onclick="copyExample('(x^2 - 1) * (x - 2)^2')">Example 5</button>
+    <div class="examples">
+        <h3>Examples:</h3>
+        <button class="example-btn" onclick="copyExample('sin(x) + cos(x/2)')">sin(x) + cos(x/2)</button>
+        <button class="example-btn" onclick="copyExample('log(x^2 + 1) * exp(-x)')">log(x^2 + 1) * exp(-x)</button>
+        <button class="example-btn" onclick="copyExample('x^3 - 3*x^2 + 2')">x^3 - 3*x^2 + 2</button>
+        <button class="example-btn" onclick="copyExample('1/(1 + x^2)')">1/(1 + x^2)</button>
+        <button class="example-btn" onclick="copyExample('sqrt(x^2 - 4)')">sqrt(x^2 - 4)</button>
+    </div>
+    <div id="criticalPoints"></div>
 </div>
 
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.4/math.min.js"></script>
 <script>
+    const plotContainer = document.getElementById('plot-container');
+    let plotlyGraph = null;
+
     function plotFunction() {
-        const func = document.getElementById('functionInput').value;
-        const x = math.range(-10, 10, 0.1).toArray();
-        const scope = {x: 0};
-        const y = x.map(v => {
-            scope.x = v;
-            return math.evaluate(func, scope);
+        const f = document.getElementById('functionInput').value;
+        const expr = math.parse(f);
+        const xValues = math.range(-10, 10, 0.1).toArray();
+        const yValues = xValues.map(x => {
+            try {
+                return expr.evaluate({x: x});
+            } catch (e) {
+                return null;
+            }
         });
 
-        const trace = {
-            x: x,
-            y: y,
+        const data = [{
+            x: xValues,
+            y: yValues,
             type: 'scatter',
             mode: 'lines'
-        };
+        }];
 
         const layout = {
             title: 'Function Plot',
-            xaxis: {title: 'X Axis'},
-            yaxis: {title: 'Y Axis'}
+            xaxis: {title: 'X'},
+            yaxis: {title: 'Y'},
+            hovermode: 'closest'
         };
 
-        Plotly.newPlot('plot', [trace], layout);
+        if (plotlyGraph) {
+            Plotly.update(plotContainer, data, layout);
+        } else {
+            plotlyGraph = Plotly.newPlot(plotContainer, data, layout);
+        }
 
-        // Add zoom and pan functionality
-        Plotly.relayout('plot', {
-            'xaxis.autorange': true,
-            'yaxis.autorange': true
+        findCriticalPoints(expr);
+    }
+
+    function findCriticalPoints(expr) {
+        const criticalPointsDiv = document.getElementById('criticalPoints');
+        criticalPointsDiv.innerHTML = ''; // Clear previous points
+
+        // This is a simplified approach; actual critical point finding would require derivatives
+        const xValues = math.range(-10, 10, 0.5).toArray();
+        xValues.forEach(x => {
+            try {
+                const y = expr.evaluate({x: x});
+                const point = `(${x}, ${y})`;
+                criticalPointsDiv.innerHTML += `<p>${point}</p>`;
+            } catch (e) {}
         });
+    }
 
-        // Find and display critical points
-        findCriticalPoints(func, x, y);
+    function zoomOut() {
+        if (plotlyGraph) {
+            Plotly.relayout(plotContainer, {
+                'xaxis.range': [-10, 10],
+                'yaxis.range': null
+            });
+        }
     }
 
     function resetView() {
-        Plotly.relayout('plot', {
-            'xaxis.range': [-10, 10],
-            'yaxis.range': null
-        });
+        if (plotlyGraph) Plotly.relayout(plotContainer, {});
     }
 
-    function findCriticalPoints(func, x, y) {
-        let criticalPoints = [];
-        for(let i = 1; i < x.length - 1; i++) {
-            if((y[i-1] < y[i] && y[i+1] < y[i]) || (y[i-1] > y[i] && y[i+1] > y[i])) {
-                criticalPoints.push({x: x[i], y: y[i]});
-            }
-        }
-        let pointsDiv = document.getElementById('criticalPoints');
-        pointsDiv.innerHTML = criticalPoints.length ?
-            'Critical Points: ' + JSON.stringify(criticalPoints) : 'No critical points found in range.';
-    }
-
-    function copyExample(example) {
-        document.getElementById('functionInput').value = example;
+    function copyExample(text) {
+        document.getElementById('functionInput').value = text;
     }
 </script>
 
