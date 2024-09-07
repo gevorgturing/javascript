@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customizable Calendar App</title>
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@5/main.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@5/main.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/tippy.js@6/themes/light.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --event-bg: #e7f3ff;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --event-bg: #1e1e1e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s;
+        }
+
+        #calendar {
+            max-width: 1100px;
+            margin: 40px auto;
+            font-family: Arial, sans-serif;
+        }
+
+        .fc-event {
+            background-color: var(--event-bg);
+        }
+
+        .theme-switch {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="calendar"></div>
+    <div class="theme-switch">
+        <button onclick="toggleTheme()">Switch Theme</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@5/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@5/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@5/main.min.js"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                plugins: [ 'interaction', 'dayGrid' ],
+                initialView: 'dayGridMonth',
+                editable: true,
+                selectable: true,
+                events: [
+                    // Sample events would be dynamically added here
+                ],
+                eventDidMount: function(info) {
+                    tippy(info.el, {
+                        content: info.event.title,
+                        theme: 'light'
+                    });
+                }
+            });
+
+            calendar.render();
+
+            // Drag and Drop functionality
+            calendar.setOption('selectable', true);
+            calendar.setOption('editable', true);
+        });
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+        }
+    </script>
+</body>
+</html>

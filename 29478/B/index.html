@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customizable Calendar</title>
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light.css" />
+<style>
+:root {
+    --bg-color: #ffffff;
+    --text-color: #333333;
+    --event-bg: #e0e0e0;
+}
+
+body.dark-mode {
+    --bg-color: #333333;
+    --text-color: #ffffff;
+    --event-bg: #555555;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    font-family: 'Arial', sans-serif;
+}
+
+.calendar-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+.view-toggle, .theme-toggle {
+    margin-bottom: 20px;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.day, .event {
+    min-height: 100px;
+    background: var(--event-bg);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.event {
+    cursor: move;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .calendar {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+<div class="calendar-container">
+    <button onclick="toggleView('daily')">Daily</button>
+    <button onclick="toggleView('weekly')">Weekly</button>
+    <button onclick="toggleView('monthly')">Monthly</button>
+    <button onclick="toggleTheme()">Toggle Theme</button>
+
+    <div id="calendar" class="calendar"></div>
+</div>
+
+<script src="https://unpkg.com/tippy.js@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+let currentView = 'weekly';
+
+function toggleView(view) {
+    currentView = view;
+    renderCalendar();
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+}
+
+function renderCalendar() {
+    const calendar = document.getElementById('calendar');
+    calendar.innerHTML = ''; // Clear previous content
+
+    // Placeholder for dynamic content generation based on currentView
+    for(let i = 0; i < (currentView === 'monthly' ? 35 : 7); i++) {
+        const div = document.createElement('div');
+        div.className = currentView === 'daily' ? 'event' : 'day';
+        div.textContent = `Day ${i + 1}`;
+        if(currentView !== 'daily') {
+            div.draggable = true;
+            div.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', e.target.id));
+        }
+        calendar.appendChild(div);
+    }
+
+    // Initialize tooltips
+    tippy('.event', {
+        content: 'Event Details Here',
+        theme: 'light',
+        interactive: true
+    });
+
+    // Initialize drag and drop
+    if(currentView !== 'daily') {
+        new Sortable(calendar, {
+            group: 'shared',
+            animation: 150
+        });
+    }
+}
+
+// Initial render
+renderCalendar();
+</script>
+</body>
+</html>
