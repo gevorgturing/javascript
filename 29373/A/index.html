@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BTC Price Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #priceDisplay { font-size: 24px; color: #f39c12; }
+        #chartContainer { width: 100%; height: 400px; margin: 20px 0; }
+        .order-form, .order-list { margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div id="priceDisplay">Current BTC Price: $<span id="currentPrice">Loading...</span></div>
+<div id="userBalance">Your Balance: $<span id="balance">10000</span> | BTC: <span id="btcAmount">0</span></div>
+<div id="chartContainer">
+    <canvas id="btcChart"></canvas>
+</div>
+
+<div class="order-form">
+    <input type="number" id="orderPrice" placeholder="Price" min="16000" max="68000">
+    <button onclick="placeOrder()">Place Order</button>
+</div>
+
+<div class="order-list">
+    <h3>Your Orders</h3>
+    <ul id="ordersList"></ul>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script>
+    const ctx = document.getElementById('btcChart').getContext('2d');
+    let chart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [{ label: 'BTC Price', data: [], borderColor: 'rgb(255, 99, 132)' }] },
+        options: {
+            scales: { x: { type: 'time', time: { unit: 'minute' } } },
+            plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' } } }
+        }
+    });
+
+    let prices = JSON.parse(localStorage.getItem('btcPrices')) || [];
+    let balance = parseFloat(localStorage.getItem('userBalance')) || 10000;
+    let btcAmount = parseFloat(localStorage.getItem('btcAmount')) || 0;
+    let orders = JSON.parse(localStorage.getItem('orders')) || [];
+
+    function updateDisplay() {
+        document.getElementById('currentPrice').textContent = prices[prices.length - 1] || '0';
+        document.getElementById('balance').textContent = balance.toFixed(2);
+        document.getElementById('btcAmount').textContent = btcAmount.toFixed(8);
+        updateChart();
+        updateOrderList();
+    }
+
+    function generatePrice() {
+        let lastPrice = prices.length ? prices[prices.length - 1] : 42000; // Midpoint of range
+        let newPrice = lastPrice * (1 + (Math.random() - 0.5) * 0.2); // ±10%
+        newPrice = Math.max(16000, Math.min(newPrice, 68000));
+        prices.push(newPrice);
+        if (prices.length > 100) prices.shift();
+        localStorage.setItem('btcPrices', JSON.stringify(prices));
+        executeOrders(newPrice);
+        updateDisplay();
+    }
+
+    function updateChart() {
+        chart.data.labels = prices.map((_, i) => new Date(Date.now() - (prices.length - i - 1) * 10000));
+        chart.data.datasets[0].data = prices;
+        chart.update();
+    }
+
+    function placeOrder() {
+        const price = parseFloat(document.getElementById('orderPrice').value);
+        if (price && balance >= price) {
+            balance -= price;
+            orders.push({price: price, btc: price / prices[prices.length - 1], id: Date.now()});
+            localStorage.setItem('orders', JSON.stringify(orders));
+            localStorage.setItem('userBalance', balance);
+            updateDisplay();
+        }
+    }
+
+    function executeOrders(currentPrice) {
+        orders = orders.filter(order => {
+            if ((currentPrice <= order.price && order.type !== 'sell') ||
+                (currentPrice >= order.price && order.type === 'sell')) {
+                btcAmount += order.btc;
+                balance += (order.type === 'sell' ? currentPrice * order.btc : 0);
+                return false;
+            }
+            return true;
+        });
+        localStorage.setItem('orders', JSON.stringify(orders));
+        localStorage.setItem('btcAmount', btcAmount);
+        localStorage.setItem('userBalance', balance);
+    }
+
+    function updateOrderList() {
+        const list = document.getElementById('ordersList');
+        list.innerHTML = '';
+        orders.forEach(order => {
+            let li = document.createElement('li');
+            li.textContent = `Order: ${order.type || 'buy'} at $${order.price}`;
+            let cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.onclick = function() { cancelOrder(order.id); };
+            li.appendChild(cancelBtn);
+            list.appendChild(li);
+        });
+    }
+
+    function cancelOrder(id) {
+        const index = orders.findIndex(o => o.id === id);
+        if (index > -1) {
+            balance += orders[index].price;
+            orders.splice(index, 1);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            localStorage.setItem('userBalance', balance);
+            updateDisplay();
+        }
+    }
+
+    // Initial setup
+    updateDisplay();
+    setInterval(generatePrice, 10000);
+</script>
+
+</body>
+</html>

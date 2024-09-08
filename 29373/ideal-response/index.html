@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC Real-Time Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+<style>
+    body { font-family: 'Arial', sans-serif; }
+    #priceChart { width: 100%; height: 400px; }
+    .order-item { cursor: pointer; transition: background-color 0.3s; }
+    .order-item:hover { background-color: #f0f0f0; }
+</style>
+</head>
+<body>
+<div class="container mt-5">
+    <div id="userWelcome" class="notification is-info" style="display:none;">
+        Welcome, <span id="userName"></span>! Your balance: $<span id="userBalance">10000</span>
+    </div>
+    <input id="userNameInput" type="text" placeholder="Enter your name" class="input mb-2">
+    <button id="startApp" class="button is-primary mb-4">Start Tracking</button>
+    <h1 class="title">Current BTC Price: $<span id="currentPrice">Loading...</span></h1>
+    <div id="priceChart"></div>
+    <div class="mt-4">
+        <input id="orderPrice" type="number" placeholder="Enter BTC price for order" class="input">
+        <button id="placeOrder" class="button is-link">Place Order</button>
+    </div>
+    <div id="ordersList" class="mt-4">
+        <h2 class="title is-4">Your Orders</h2>
+        <ul id="orders"></ul>
+    </div>
+</div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+<script>
+// JavaScript code here
+let userName, userBalance = 10000, btcBalance = 0, prices = [], orders = [];
+
+function setup() {
+    if(localStorage.getItem('user')) {
+        let user = JSON.parse(localStorage.getItem('user'));
+        userName = user.name;
+        userBalance = user.balance;
+        document.getElementById('userWelcome').style.display = 'block';
+        document.getElementById('userName').textContent = userName;
+        document.getElementById('userBalance').textContent = userBalance;
+    } else {
+        document.getElementById('startApp').onclick = () => {
+            userName = document.getElementById('userNameInput').value;
+            if(userName) {
+                localStorage.setItem('user', JSON.stringify({name: userName, balance: userBalance}));
+                document.getElementById('userWelcome').style.display = 'block';
+                document.getElementById('userName').textContent = userName;
+                document.getElementById('userBalance').textContent = userBalance;
+                document.getElementById('userNameInput').style.display = 'none';
+                document.getElementById('startApp').style.display = 'none';
+            }
+        };
+    }
+
+    if(localStorage.getItem('prices')) {
+        prices = JSON.parse(localStorage.getItem('prices'));
+    }
+
+    if(localStorage.getItem('orders')) {
+        orders = JSON.parse(localStorage.getItem('orders'));
+        updateOrdersList();
+    }
+
+    setInterval(updatePrice, 10000);
+    updatePrice();
+    createChart();
+}
+
+function updatePrice() {
+    const price = Math.floor(Math.random() * (68000 - 16000 + 1)) + 16000;
+    document.getElementById('currentPrice').textContent = price;
+    prices.push(price);
+    if(prices.length > 100) prices.shift();
+    localStorage.setItem('prices', JSON.stringify(prices));
+    checkOrders(price);
+}
+
+function createChart() {
+    const svg = d3.select("#priceChart")
+        .append("svg")
+        .attr("width", '100%')
+        .attr("height", '100%');
+
+    const margin = {top: 20, right: 20, bottom: 30, left: 50},
+        width = +svg.attr("width") - margin.left - margin.right,
+        height = +svg.attr("height") - margin.top - margin.bottom;
+
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleTime().range([0, width]),
+          y = d3.scaleLinear().range([height, 0]);
+
+    const line = d3.line()
+        .x((d, i) => x(i))
+        .y(d => y(d));
+
+    x.domain([0, 99]);
+    y.domain(d3.extent(prices));
+
+    g.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).ticks(5));
+
+    g.append("g")
+        .call(d3.axisLeft(y));
+
+    g.append("path")
+        .datum(prices)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 1.5)
+        .attr("d", line);
+
+    // Add p5.js for interactive elements
+    new p5(p => {
+        p.setup = () => {
+            let canvas = p.createCanvas(width, height);
+            canvas.parent('priceChart');
+        };
+
+        p.draw = () => {
+            p.clear();
+            for(let i = 0; i < prices.length; i++) {
+                let x = p.map(i, 0, 99, 0, width);
+                let y = p.map(prices[i], y.domain()[0], y.domain()[1], height, 0);
+                p.fill(255, 0, 0);
+                p.noStroke();
+                p.ellipse(x, y, 5, 5);
+                if(p.mouseX > x - 5 && p.mouseX < x + 5 && p.mouseY > y - 5 && p.mouseY < y + 5) {
+                    p.textSize(12);
+                    p.text(prices[i], x, y - 10);
+                }
+            }
+        };
+    });
+}
+
+function placeOrder() {
+    const orderPrice = parseFloat(document.getElementById('orderPrice').value);
+    if (!orderPrice) {
+        alert('Please enter a valid price.');
+        return;
+    }
+    if (userBalance <= 0) {
+        alert('Insufficient balance to place an order.');
+        return;
+    }
+    orders.push({price: orderPrice, status: 'Pending'});
+    localStorage.setItem('orders', JSON.stringify(orders));
+    updateOrdersList();
+    alert('Order placed successfully.');
+}
+
+
+function checkOrders(currentPrice) {
+    orders = orders.map(order => {
+        if(order.status === 'Pending' && currentPrice <= order.price) {
+            const btcBought = userBalance / currentPrice;
+            btcBalance += btcBought;
+            userBalance -= btcBought * currentPrice;
+            order.status = 'Confirmed';
+        }
+        return order;
+    });
+    localStorage.setItem('orders', JSON.stringify(orders));
+    localStorage.setItem('user', JSON.stringify({name: userName, balance: userBalance}));
+    updateOrdersList();
+}
+
+function updateOrdersList() {
+    const ordersList = document.getElementById('orders');
+    ordersList.innerHTML = '';
+    orders.forEach((order, index) => {
+        let li = document.createElement('li');
+        li.textContent = `Order at $${order.price} - Status: ${order.status}`;
+        li.classList.add('order-item');
+        li.onclick = () => editOrDeleteOrder(index);
+        ordersList.appendChild(li);
+    });
+}
+
+function editOrDeleteOrder(index) {
+    const order = orders[index];
+    const action = prompt(`Do you want to edit or delete this order? (edit/delete)`, 'edit');
+
+    if (action.toLowerCase() === 'delete') {
+        const confirmDelete = confirm(`Are you sure you want to delete the order at $${order.price}?`);
+        if (confirmDelete) {
+            orders.splice(index, 1); // Remove the order
+            localStorage.setItem('orders', JSON.stringify(orders));
+            updateOrdersList();
+            alert('Order deleted successfully.');
+        }
+    } else if (action.toLowerCase() === 'edit') {
+        const newPrice = prompt(`Enter the new price for your order:`, order.price);
+        const parsedPrice = parseFloat(newPrice);
+        if (isNaN(parsedPrice) || parsedPrice <= 0) {
+            alert('Invalid price entered. Please enter a positive number.');
+        } else {
+            order.price = parsedPrice; // Update the price
+            orders[index] = order;
+            localStorage.setItem('orders', JSON.stringify(orders));
+            updateOrdersList();
+            alert('Order updated successfully.');
+        }
+    } else {
+        alert('Invalid action. Please type "edit" or "delete".');
+    }
+}
+
+
+document.getElementById('placeOrder').onclick = placeOrder;
+setup();
+</script>
+</body>
+</html>

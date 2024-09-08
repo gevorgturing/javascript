@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML/CSS/JS Learner Widget</title>
+<style>
+body { font-family: 'Arial', sans-serif; }
+.widget {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.promo-codes {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+.promo-code {
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.content, .question, .answer {
+    margin-top: 20px;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+input[type="text"] {
+    padding: 10px;
+    width: calc(100% - 22px);
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<div class="widget" id="learnerWidget">
+    <div class="promo-codes">
+        <div class="promo-code" onclick="copyPromoCode('PROMO1')">PROMO1 <button onclick="copyPromoCode('PROMO1')">Copy</button></div>
+        <div class="promo-code" onclick="copyPromoCode('PROMO2')">PROMO2 <button onclick="copyPromoCode('PROMO2')">Copy</button></div>
+    </div>
+    <!-- Initially hide the button using inline CSS -->
+    <button onclick="usePromoCode()" style="display:none;" id="revealAnswerBtn">See Correct Answer Using Promo Code</button>
+    <div class="content" id="content">Welcome to HTML learning!</div>
+    <div class="question" id="question"></div>
+    <input type="text" id="answerInput" class="answer" style="display:none;">
+    <button onclick="checkAnswer()">Submit Answer</button>
+</div>
+
+<script>
+    const topics = [
+        { subject: 'HTML', content: 'HTML is used to structure content for web browsers.', question: 'What does HTML stand for?', correctAnswer: 'HyperText Markup Language' },
+        { subject: 'CSS', content: 'CSS is used for styling web pages.', question: 'What does CSS stand for?', correctAnswer: 'Cascading Style Sheets' },
+        { subject: 'JavaScript', content: 'JavaScript adds interactivity to websites.', question: 'Which programming language is used to make web pages interactive?', correctAnswer: 'JavaScript' }
+    ];
+
+    let currentTopic = 0;
+    const promoCodes = ['PROMO1', 'PROMO2'];
+    let usedPromoCodes = [];
+
+    function displayContent() {
+        document.getElementById('content').innerText = topics[currentTopic].content;
+        document.getElementById('question').innerText = topics[currentTopic].question;
+        document.getElementById('answerInput').style.display = 'block';
+        document.getElementById('answerInput').value = ''; // Clear input for the new question
+        document.getElementById('revealAnswerBtn').style.display = 'none'; // Hide the promo code button initially
+    }
+
+    function checkAnswer() {
+        const userAnswer = document.getElementById('answerInput').value;
+        if (userAnswer.toLowerCase() === topics[currentTopic].correctAnswer.toLowerCase()) {
+            moveToNextTopic();
+        } else {
+            alert('Incorrect answer. Try again or use a promo code.');
+            document.getElementById('revealAnswerBtn').style.display = 'block'; // Show the button when answer is incorrect
+        }
+    }
+
+    function moveToNextTopic() {
+        alert('Correct! Moving to the next topic.');
+        currentTopic++;
+        if (currentTopic < topics.length) {
+            displayContent();
+        } else {
+            document.getElementById('content').innerText = 'Congratulations! You have completed all topics.';
+            document.getElementById('question').innerText = '';
+            document.getElementById('answerInput').style.display = 'none';
+            document.getElementById('revealAnswerBtn').style.display = 'none'; // Ensure the button is hidden when no more topics are left
+        }
+    }
+
+    function copyPromoCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Promo code copied to clipboard!');
+        });
+    }
+
+    function usePromoCode() {
+        const code = prompt("Enter your promo code:");
+        if (promoCodes.includes(code) && !usedPromoCodes.includes(code)) {
+            usedPromoCodes.push(code); // Mark code as used
+            alert('Promo code accepted! The correct answer is: ' + topics[currentTopic].correctAnswer);
+            moveToNextTopic(); // Move to next topic regardless of user's input
+        } else {
+            alert('Invalid or already used promo code.');
+        }
+    }
+
+    displayContent();
+</script>
+
+</body>
+</html>

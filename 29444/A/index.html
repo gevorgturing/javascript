@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML/CSS/JS Learning Widget</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .widget {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .promo-code {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container widget">
+    <h2 class="text-center">Learn HTML/CSS/JS</h2>
+
+    <!-- Promo Codes Section -->
+    <div id="promoCodes"></div>
+
+    <!-- Learning Content -->
+    <div id="learningContent"></div>
+
+    <!-- Question Section -->
+    <div id="questionSection" style="display: none;">
+        <p id="question"></p>
+        <input type="text" id="answerInput" class="form-control" placeholder="Your answer...">
+        <button onclick="checkAnswer()" class="btn btn-primary mt-2">Submit</button>
+        <button onclick="usePromoCode()" class="btn btn-secondary mt-2">See Correct Answer Using Promo Code</button>
+    </div>
+
+    <!-- Promo Code Input for Answer -->
+    <div id="promoCodeInput" style="display: none;">
+        <input type="text" id="promoCodeAnswer" class="form-control" placeholder="Enter promo code">
+        <button onclick="revealAnswer()" class="btn btn-info mt-2">Reveal Answer</button>
+    </div>
+</div>
+
+<script>
+    const learningMaterials = {
+        html: {info: "HTML is the standard markup language for creating Web pages.", question: "What does HTML stand for?"},
+        css: {info: "CSS is used for describing the look and formatting of a site.", question: "What does CSS stand for?"},
+        js: {info: "JavaScript is a scripting language for creating dynamic web page content.", question: "What is JavaScript primarily used for in web development?"}
+    };
+    let currentTopic = 'html';
+    const promoCodes = [
+        {code: "HTML101", used: false},
+        {code: "CSS202", used: false}
+    ];
+
+    function loadContent() {
+        document.getElementById('learningContent').innerHTML = learningMaterials[currentTopic].info;
+        document.getElementById('question').innerText = learningMaterials[currentTopic].question;
+        document.getElementById('questionSection').style.display = 'none';
+        document.getElementById('learningContent').style.display = 'block';
+        if (currentTopic === 'html') showPromoCodes();
+    }
+
+    function showPromoCodes() {
+        let codesHtml = '';
+        promoCodes.forEach(code => {
+            if (!code.used) {
+                codesHtml += `<div class="promo-code"><span>${code.code}</span><button class="btn btn-sm btn-outline-secondary" onclick="copyPromoCode('${code.code}')">Copy</button></div>`;
+            }
+        });
+        document.getElementById('promoCodes').innerHTML = codesHtml;
+    }
+
+    function checkAnswer() {
+        const answer = document.getElementById('answerInput').value.toLowerCase();
+        const correctAnswer = currentTopic === 'html' ? 'hypertext markup language' :
+                             (currentTopic === 'css' ? 'cascading style sheets' : 'dynamic web content');
+        if(answer.includes(correctAnswer)) {
+            currentTopic = currentTopic === 'js' ? 'html' : {'html': 'css', 'css': 'js'}[currentTopic];
+            loadContent();
+        } else {
+            alert('Try again or use a promo code.');
+        }
+    }
+
+    function usePromoCode() {
+        document.getElementById('promoCodeInput').style.display = 'block';
+    }
+
+    function revealAnswer() {
+        const promoInput = document.getElementById('promoCodeAnswer').value;
+        const promoCode = promoCodes.find(code => code.code === promoInput && !code.used);
+        if(promoCode) {
+            alert('Correct answer: ' + learningMaterials[currentTopic].question.split('?')[0] + '...');
+            promoCode.used = true;
+            showPromoCodes();
+            currentTopic = currentTopic === 'js' ? 'html' : {'html': 'css', 'css': 'js'}[currentTopic];
+            loadContent();
+            document.getElementById('promoCodeInput').style.display = 'none';
+        } else {
+            alert('Invalid or used promo code.');
+        }
+    }
+
+    function copyPromoCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Promo code copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+
+    loadContent();
+</script>
+</body>
+</html>
