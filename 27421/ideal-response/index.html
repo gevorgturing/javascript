@@ -203,8 +203,9 @@ function generateCVHTML() {
 }
 
 function downloadPDF() {
+    let tempDiv;
     generateCVHTML().then(html => {
-        const tempDiv = document.createElement('div');
+        tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
         tempDiv.style.visibility = 'visible';
         tempDiv.style.position = 'absolute';
@@ -215,6 +216,10 @@ function downloadPDF() {
             scale: 5,
             useCORS: true
         }).then(canvas => {
+            if (canvas.height === 0) {
+                alert('The CV content is empty. Please fill out the CV form before downloading.');
+                return;
+            }
             const imgData = canvas.toDataURL('image/png');
             const doc = new jspdf.jsPDF({
                 orientation: 'portrait',
