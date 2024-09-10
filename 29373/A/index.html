@@ -2,110 +2,100 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BTC Price Tracker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        #priceDisplay { font-size: 24px; color: #f39c12; }
-        #chartContainer { width: 100%; height: 400px; margin: 20px 0; }
-        .order-form, .order-list { margin: 20px 0; }
+        body { font-family: Arial, sans-serif; }
+        #currentPrice { font-size: 2em; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        .chart-container { width: 100%; height: 400px; }
+        .order-form, .order-list { margin-top: 20px; }
     </style>
 </head>
 <body>
-
-<div id="priceDisplay">Current BTC Price: $<span id="currentPrice">Loading...</span></div>
-<div id="userBalance">Your Balance: $<span id="balance">10000</span> | BTC: <span id="btcAmount">0</span></div>
-<div id="chartContainer">
-    <canvas id="btcChart"></canvas>
+<div class="container">
+    <h1>Real-Time BTC Price Tracker</h1>
+    <div id="currentPrice">$<span id="price">0</span></div>
+    <div class="chart-container">
+        <canvas id="btcChart"></canvas>
+    </div>
+    <div class="order-form">
+        <input type="number" id="buyPrice" placeholder="Price to Buy">
+        <input type="number" id="buyAmount" placeholder="Amount in $">
+        <button onclick="placeOrder()">Place Buy Order</button>
+    </div>
+    <div class="order-list">
+        <h3>Your Orders</h3>
+        <ul id="orderList"></ul>
+    </div>
 </div>
-
-<div class="order-form">
-    <input type="number" id="orderPrice" placeholder="Price" min="16000" max="68000">
-    <button onclick="placeOrder()">Place Order</button>
-</div>
-
-<div class="order-list">
-    <h3>Your Orders</h3>
-    <ul id="ordersList"></ul>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
 <script>
-    const ctx = document.getElementById('btcChart').getContext('2d');
-    let chart = new Chart(ctx, {
-        type: 'line',
-        data: { datasets: [{ label: 'BTC Price', data: [], borderColor: 'rgb(255, 99, 132)' }] },
-        options: {
-            scales: { x: { type: 'time', time: { unit: 'minute' } } },
-            plugins: { zoom: { zoom: { wheel: { enabled: true }, mode: 'x' } } }
-        }
-    });
-
-    let prices = JSON.parse(localStorage.getItem('btcPrices')) || [];
-    let balance = parseFloat(localStorage.getItem('userBalance')) || 10000;
-    let btcAmount = parseFloat(localStorage.getItem('btcAmount')) || 0;
+    let btcPrice = 0;
+    let priceHistory = JSON.parse(localStorage.getItem('priceHistory') || '[]').slice(-100);
+    let userBalance = parseFloat(localStorage.getItem('userBalance')) || 10000;
+    let userBTC = parseFloat(localStorage.getItem('userBTC')) || 0;
     let orders = JSON.parse(localStorage.getItem('orders')) || [];
 
-    function updateDisplay() {
-        document.getElementById('currentPrice').textContent = prices[prices.length - 1] || '0';
-        document.getElementById('balance').textContent = balance.toFixed(2);
-        document.getElementById('btcAmount').textContent = btcAmount.toFixed(8);
-        updateChart();
-        updateOrderList();
-    }
-
     function generatePrice() {
-        let lastPrice = prices.length ? prices[prices.length - 1] : 42000; // Midpoint of range
-        let newPrice = lastPrice * (1 + (Math.random() - 0.5) * 0.2); // ±10%
-        newPrice = Math.max(16000, Math.min(newPrice, 68000));
-        prices.push(newPrice);
-        if (prices.length > 100) prices.shift();
-        localStorage.setItem('btcPrices', JSON.stringify(prices));
-        executeOrders(newPrice);
+        const min = 16000, max = 68000;
+        if (btcPrice === 0) btcPrice = Math.random() * (max - min) + min;
+        else {
+            let changePercent = 2 * (Math.random() - 0.5) * 0.1; // Up to 10% change
+            btcPrice *= (1 + changePercent);
+            btcPrice = Math.max(min, Math.min(max, btcPrice)); // Clamp the price
+        }
+        priceHistory.push({x: new Date(), y: btcPrice});
+        if (priceHistory.length > 100) priceHistory.shift();
+        localStorage.setItem('priceHistory', JSON.stringify(priceHistory));
         updateDisplay();
     }
 
-    function updateChart() {
-        chart.data.labels = prices.map((_, i) => new Date(Date.now() - (prices.length - i - 1) * 10000));
-        chart.data.datasets[0].data = prices;
-        chart.update();
+    function updateDisplay() {
+        document.getElementById('price').textContent = btcPrice.toFixed(2);
+        updateChart();
+        checkOrders();
     }
 
     function placeOrder() {
-        const price = parseFloat(document.getElementById('orderPrice').value);
-        if (price && balance >= price) {
-            balance -= price;
-            orders.push({price: price, btc: price / prices[prices.length - 1], id: Date.now()});
+        const price = parseFloat(document.getElementById('buyPrice').value);
+        const amount = parseFloat(document.getElementById('buyAmount').value);
+        if (price > 0 && amount > 0 && amount <= userBalance) {
+            orders.push({price, amount, btc: 0, id: Date.now()});
+            userBalance -= amount;
+            localStorage.setItem('userBalance', userBalance);
             localStorage.setItem('orders', JSON.stringify(orders));
-            localStorage.setItem('userBalance', balance);
-            updateDisplay();
+            updateOrderList();
+        } else {
+            alert('Invalid order or insufficient funds.');
         }
     }
 
-    function executeOrders(currentPrice) {
-        orders = orders.filter(order => {
-            if ((currentPrice <= order.price && order.type !== 'sell') ||
-                (currentPrice >= order.price && order.type === 'sell')) {
-                btcAmount += order.btc;
-                balance += (order.type === 'sell' ? currentPrice * order.btc : 0);
-                return false;
+    function checkOrders() {
+        orders.forEach((order, index) => {
+            if ((btcPrice <= order.price && order.btc === 0) || (btcPrice >= order.price && order.btc > 0)) {
+                const transactionAmount = order.btc === 0 ? order.amount : order.btc * btcPrice;
+                userBalance += (order.btc === 0) ? -transactionAmount : transactionAmount;
+                userBTC += (order.btc === 0) ? (order.amount / order.price) : -order.btc;
+                orders.splice(index, 1);
             }
-            return true;
         });
+        localStorage.setItem('userBalance', userBalance);
+        localStorage.setItem('userBTC', userBTC);
         localStorage.setItem('orders', JSON.stringify(orders));
-        localStorage.setItem('btcAmount', btcAmount);
-        localStorage.setItem('userBalance', balance);
+        updateOrderList();
     }
 
     function updateOrderList() {
-        const list = document.getElementById('ordersList');
+        const list = document.getElementById('orderList');
         list.innerHTML = '';
         orders.forEach(order => {
-            let li = document.createElement('li');
-            li.textContent = `Order: ${order.type || 'buy'} at $${order.price}`;
-            let cancelBtn = document.createElement('button');
+            const li = document.createElement('li');
+            li.textContent = `Buy at ${order.price} for $${order.amount} (ID: ${order.id})`;
+            const cancelBtn = document.createElement('button');
             cancelBtn.textContent = 'Cancel';
-            cancelBtn.onclick = function() { cancelOrder(order.id); };
+            cancelBtn.onclick = () => cancelOrder(order.id);
             li.appendChild(cancelBtn);
             list.appendChild(li);
         });
@@ -114,18 +104,53 @@
     function cancelOrder(id) {
         const index = orders.findIndex(o => o.id === id);
         if (index > -1) {
-            balance += orders[index].price;
+            userBalance += orders[index].amount;
             orders.splice(index, 1);
+            localStorage.setItem('userBalance', userBalance);
             localStorage.setItem('orders', JSON.stringify(orders));
-            localStorage.setItem('userBalance', balance);
-            updateDisplay();
+            updateOrderList();
         }
     }
 
-    // Initial setup
-    updateDisplay();
-    setInterval(generatePrice, 10000);
-</script>
+    let chartInstance;
+    function updateChart() {
+        if (chartInstance) chartInstance.destroy();
+        const ctx = document.getElementById('btcChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'BTC Price',
+                    data: priceHistory,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                quarter: 'MMM YYYY'
+                            }
+                        }
+                    }]
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                tooltips: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        });
+    }
 
+    // Initial setup
+    updateOrderList();
+    setInterval(generatePrice, 10000);
+    generatePrice();
+</script>
 </body>
 </html>

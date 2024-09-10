@@ -1,16 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC Real-Time Tracker</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-<style>
-    body { font-family: 'Arial', sans-serif; }
-    #priceChart { width: 100%; height: 400px; }
-    .order-item { cursor: pointer; transition: background-color 0.3s; }
-    .order-item:hover { background-color: #f0f0f0; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Real-Time Tracker</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        body { font-family: 'Arial', sans-serif; padding: 50px; }
+        canvas { width: 100%; height: 400px; }
+        .order-item { cursor: pointer; transition: background-color 0.3s; }
+        .order-item:hover { background-color: #f0f0f0; }
+        .button-small {
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .input, .button {
+            margin: 5px;
+        }
+        .input-field {
+            display: flex;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
 <div class="container mt-5">
@@ -20,9 +31,12 @@
     <input id="userNameInput" type="text" placeholder="Enter your name" class="input mb-2">
     <button id="startApp" class="button is-primary mb-4">Start Tracking</button>
     <h1 class="title">Current BTC Price: $<span id="currentPrice">Loading...</span></h1>
-    <div id="priceChart"></div>
-    <div class="mt-4">
-        <input id="orderPrice" type="number" placeholder="Enter BTC price for order" class="input">
+    <div id="priceChart">
+        <canvas id="priceChartCanvas"></canvas>
+    </div>
+    <div class="mt-4 input-field">
+        <input id="orderPrice" type="number" placeholder="Order price" class="input">
+        <input id="orderAmount" type="number" placeholder="Amount to buy" class="input">
         <button id="placeOrder" class="button is-link">Place Order</button>
     </div>
     <div id="ordersList" class="mt-4">
@@ -30,193 +44,193 @@
         <ul id="orders"></ul>
     </div>
 </div>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// JavaScript code here
-let userName, userBalance = 10000, btcBalance = 0, prices = [], orders = [];
+    let userName, userBalance = 10000, btcBalance = 0, prices = [], orders = [];
+    let priceChart; // Define this globally to ensure availability
 
-function setup() {
-    if(localStorage.getItem('user')) {
-        let user = JSON.parse(localStorage.getItem('user'));
-        userName = user.name;
-        userBalance = user.balance;
-        document.getElementById('userWelcome').style.display = 'block';
-        document.getElementById('userName').textContent = userName;
-        document.getElementById('userBalance').textContent = userBalance;
-    } else {
-        document.getElementById('startApp').onclick = () => {
-            userName = document.getElementById('userNameInput').value;
-            if(userName) {
-                localStorage.setItem('user', JSON.stringify({name: userName, balance: userBalance}));
-                document.getElementById('userWelcome').style.display = 'block';
-                document.getElementById('userName').textContent = userName;
-                document.getElementById('userBalance').textContent = userBalance;
-                document.getElementById('userNameInput').style.display = 'none';
-                document.getElementById('startApp').style.display = 'none';
-            }
-        };
+    document.addEventListener('DOMContentLoaded', function () {
+        setup();
+    });
+
+    function updateOrdersList() {
+        const ordersList = document.getElementById('orders');
+        ordersList.innerHTML = '';
+        orders.forEach((order, index) => {
+            let li = document.createElement('li');
+            li.textContent = `Order at $${order.price} for ${order.amount} BTC - Status: ${order.status}`;
+            li.classList.add('order-item');
+            let editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'button button-small';
+            editBtn.onclick = () => editOrder(index);
+            let cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'button button-small';
+            cancelBtn.onclick = () => cancelOrder(index);
+            li.appendChild(editBtn);
+            li.appendChild(cancelBtn);
+            ordersList.appendChild(li);
+        });
     }
 
-    if(localStorage.getItem('prices')) {
-        prices = JSON.parse(localStorage.getItem('prices'));
+    function setup() {
+        document.getElementById('startApp').onclick = initializeUser;
+        loadUserData();
+        createChart();
+        updatePrice();
+        setInterval(updatePrice, 10000);
     }
 
-    if(localStorage.getItem('orders')) {
-        orders = JSON.parse(localStorage.getItem('orders'));
+    function initializeUser() {
+        userName = document.getElementById('userNameInput').value;
+        if(userName) {
+            saveUserData();
+            document.getElementById('userWelcome').style.display = 'block';
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('userBalance').textContent = parseFloat(userBalance).toFixed(2);
+            document.getElementById('userNameInput').style.display = 'none';
+            document.getElementById('startApp').style.display = 'none';
+        }
+    }
+
+    function loadUserData() {
+        let storedUser = localStorage.getItem('user');
+        if(storedUser) {
+            let user = JSON.parse(storedUser);
+            userName = user.name;
+            userBalance = user.balance;
+            document.getElementById('userWelcome').style.display = 'block';
+            document.getElementById('userName').textContent = userName;
+            document.getElementById('userBalance').textContent = parseFloat(userBalance).toFixed(2);
+        }
+
+        let storedPrices = localStorage.getItem('prices');
+        prices = storedPrices ? JSON.parse(storedPrices) : [];
+        let storedOrders = localStorage.getItem('orders');
+        orders = storedOrders ? JSON.parse(storedOrders) : [];
         updateOrdersList();
     }
 
-    setInterval(updatePrice, 10000);
-    updatePrice();
-    createChart();
-}
+    function saveUserData() {
+        localStorage.setItem('user', JSON.stringify({name: userName, balance: userBalance}));
+    }
 
-function updatePrice() {
-    const price = Math.floor(Math.random() * (68000 - 16000 + 1)) + 16000;
-    document.getElementById('currentPrice').textContent = price;
-    prices.push(price);
-    if(prices.length > 100) prices.shift();
-    localStorage.setItem('prices', JSON.stringify(prices));
-    checkOrders(price);
-}
+    function updatePrice() {
+        const lastPrice = prices.length ? prices[prices.length - 1] : 20000; // Default start price if empty
+        const fluctuation = 0.1; // 10% fluctuation
+        const maxChange = lastPrice * fluctuation;
+        const price = Math.round((lastPrice + maxChange * (2 * Math.random() - 1)) * 100) / 100;
+        document.getElementById('currentPrice').textContent = price;
+        prices.push(price);
+        if(prices.length > 100) prices.shift();
+        localStorage.setItem('prices', JSON.stringify(prices));
+        updateChart();
+    }
 
-function createChart() {
-    const svg = d3.select("#priceChart")
-        .append("svg")
-        .attr("width", '100%')
-        .attr("height", '100%');
-
-    const margin = {top: 20, right: 20, bottom: 30, left: 50},
-        width = +svg.attr("width") - margin.left - margin.right,
-        height = +svg.attr("height") - margin.top - margin.bottom;
-
-    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-    const x = d3.scaleTime().range([0, width]),
-          y = d3.scaleLinear().range([height, 0]);
-
-    const line = d3.line()
-        .x((d, i) => x(i))
-        .y(d => y(d));
-
-    x.domain([0, 99]);
-    y.domain(d3.extent(prices));
-
-    g.append("g")
-        .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(x).ticks(5));
-
-    g.append("g")
-        .call(d3.axisLeft(y));
-
-    g.append("path")
-        .datum(prices)
-        .attr("fill", "none")
-        .attr("stroke", "steelblue")
-        .attr("stroke-width", 1.5)
-        .attr("d", line);
-
-    // Add p5.js for interactive elements
-    new p5(p => {
-        p.setup = () => {
-            let canvas = p.createCanvas(width, height);
-            canvas.parent('priceChart');
-        };
-
-        p.draw = () => {
-            p.clear();
-            for(let i = 0; i < prices.length; i++) {
-                let x = p.map(i, 0, 99, 0, width);
-                let y = p.map(prices[i], y.domain()[0], y.domain()[1], height, 0);
-                p.fill(255, 0, 0);
-                p.noStroke();
-                p.ellipse(x, y, 5, 5);
-                if(p.mouseX > x - 5 && p.mouseX < x + 5 && p.mouseY > y - 5 && p.mouseY < y + 5) {
-                    p.textSize(12);
-                    p.text(prices[i], x, y - 10);
-                }
+    function createChart() {
+        const ctx = document.getElementById('priceChartCanvas').getContext('2d');
+        priceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: prices.map((_, i) => i),
+                datasets: [{
+                    label: 'BTC Price',
+                    data: prices,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
             }
-        };
-    });
-}
-
-function placeOrder() {
-    const orderPrice = parseFloat(document.getElementById('orderPrice').value);
-    if (!orderPrice) {
-        alert('Please enter a valid price.');
-        return;
+        });
     }
-    if (userBalance <= 0) {
-        alert('Insufficient balance to place an order.');
-        return;
-    }
-    orders.push({price: orderPrice, status: 'Pending'});
-    localStorage.setItem('orders', JSON.stringify(orders));
-    updateOrdersList();
-    alert('Order placed successfully.');
-}
 
-
-function checkOrders(currentPrice) {
-    orders = orders.map(order => {
-        if(order.status === 'Pending' && currentPrice <= order.price) {
-            const btcBought = userBalance / currentPrice;
-            btcBalance += btcBought;
-            userBalance -= btcBought * currentPrice;
-            order.status = 'Confirmed';
+    function updateChart() {
+        if (priceChart && priceChart.data) {
+            priceChart.data.labels = prices.map((_, i) => i);
+            priceChart.data.datasets[0].data = prices;
+            priceChart.update();
         }
-        return order;
-    });
-    localStorage.setItem('orders', JSON.stringify(orders));
-    localStorage.setItem('user', JSON.stringify({name: userName, balance: userBalance}));
-    updateOrdersList();
-}
+    }
 
-function updateOrdersList() {
-    const ordersList = document.getElementById('orders');
-    ordersList.innerHTML = '';
-    orders.forEach((order, index) => {
-        let li = document.createElement('li');
-        li.textContent = `Order at $${order.price} - Status: ${order.status}`;
-        li.classList.add('order-item');
-        li.onclick = () => editOrDeleteOrder(index);
-        ordersList.appendChild(li);
-    });
-}
+    function placeOrder() {
+        const orderPrice = parseFloat(document.getElementById('orderPrice').value);
+        const orderAmount = parseFloat(document.getElementById('orderAmount').value);
 
-function editOrDeleteOrder(index) {
-    const order = orders[index];
-    const action = prompt(`Do you want to edit or delete this order? (edit/delete)`, 'edit');
+        if (!orderPrice || !orderAmount) {
+            alert('Please enter valid price and amount.');
+            return;
+        }
 
-    if (action.toLowerCase() === 'delete') {
-        const confirmDelete = confirm(`Are you sure you want to delete the order at $${order.price}?`);
-        if (confirmDelete) {
-            orders.splice(index, 1); // Remove the order
+        const totalCost = orderPrice * orderAmount;
+        if (userBalance < totalCost) {
+            alert('Insufficient balance to place this order.');
+            return;
+        }
+
+        userBalance -= totalCost;
+        document.getElementById('userBalance').textContent = userBalance.toFixed(2);
+
+        orders.push({
+            price: orderPrice,
+            amount: orderAmount,
+            status: 'Pending'
+        });
+
+        localStorage.setItem('orders', JSON.stringify(orders));
+        updateOrdersList();
+        alert('Order placed successfully.');
+
+        // Clear inputs after placing an order
+        document.getElementById('orderPrice').value = '';
+        document.getElementById('orderAmount').value = '';
+    }
+
+    function editOrder(index) {
+        let order = orders[index];
+        let priceInput = prompt('Enter new price for the order:', order.price);
+        let amountInput = prompt('Enter new amount for the order:', order.amount);
+
+        if (!priceInput || !amountInput || isNaN(parseFloat(priceInput)) || isNaN(parseFloat(amountInput))) {
+            alert('Invalid input values.');
+            return;
+        }
+
+        let newPrice = parseFloat(priceInput);
+        let newAmount = parseFloat(amountInput);
+        if (newPrice !== order.price || newAmount !== order.amount) {
+            let originalCost = order.price * order.amount;
+            let newCost = newPrice * newAmount;
+            if (newCost > originalCost && userBalance < (newCost - originalCost)) {
+                alert('Insufficient balance to update the order.');
+                return;
+            }
+
+            userBalance += originalCost - newCost;
+            document.getElementById('userBalance').textContent = userBalance.toFixed(2);
+
+            order.price = newPrice;
+            order.amount = newAmount;
             localStorage.setItem('orders', JSON.stringify(orders));
             updateOrdersList();
-            alert('Order deleted successfully.');
         }
-    } else if (action.toLowerCase() === 'edit') {
-        const newPrice = prompt(`Enter the new price for your order:`, order.price);
-        const parsedPrice = parseFloat(newPrice);
-        if (isNaN(parsedPrice) || parsedPrice <= 0) {
-            alert('Invalid price entered. Please enter a positive number.');
+    }
+
+    function cancelOrder(index) {
+        let order = orders[index];
+        if (order.status === 'Pending') {
+            let refund = order.price * order.amount;
+            userBalance += refund;
+            document.getElementById('userBalance').textContent = userBalance.toFixed(2);
+            orders.splice(index, 1);
+            localStorage.setItem('orders', JSON.stringify(orders));
+            updateOrdersList();
+            alert('Order canceled and balance refunded.');
         } else {
-            order.price = parsedPrice; // Update the price
-            orders[index] = order;
-            localStorage.setItem('orders', JSON.stringify(orders));
-            updateOrdersList();
-            alert('Order updated successfully.');
+            alert('Cannot cancel executed orders.');
         }
-    } else {
-        alert('Invalid action. Please type "edit" or "delete".');
     }
-}
 
-
-document.getElementById('placeOrder').onclick = placeOrder;
-setup();
+    document.getElementById('placeOrder').onclick = placeOrder;
 </script>
 </body>
 </html>
