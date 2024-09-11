@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Productivity Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background-color: #333;
+            color: #f0f0f0;
+        }
+        .light-mode {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: auto;
+        }
+        .toggle-theme {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .section {
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .section:hover {
+            transform: translateY(-5px);
+        }
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+        .card {
+            background: #e0e0e0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .card:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+    <div class="container">
+        <h1>Team Productivity Dashboard</h1>
+        <div class="section">
+            <h2>Total Tasks Completed</h2>
+            <div class="chart-container">
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+        <div class="section">
+            <h2>Average Completion Time</h2>
+            <div class="chart-container">
+                <canvas id="lineGraph"></canvas>
+            </div>
+        </div>
+        <div class="section">
+            <h2>Task Distribution</h2>
+            <div class="chart-container">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+        <div class="section">
+            <h2>Individual Highlights</h2>
+            <div id="teamCards"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const body = document.body;
+        function toggleTheme() {
+            body.classList.toggle('light-mode');
+            body.classList.toggle('dark-mode');
+        }
+
+        // Random Data Generators
+        function randomIntFromInterval(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+
+        function updateBarChart() {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Alice', 'Bob', 'Charlie', 'David'],
+                    datasets: [{
+                        label: 'Tasks Completed',
+                        data: [randomIntFromInterval(10, 50), randomIntFromInterval(10, 50), randomIntFromInterval(10, 50), randomIntFromInterval(10, 50)],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                    }]
+                },
+                options: {
+                    animation: { duration: 500 },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function updateLineGraph() {
+            const ctx = document.getElementById('lineGraph').getContext('2d');
+            const days = Array.from({length: 30}, (_, i) => i + 1);
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: days,
+                    datasets: [{
+                        label: 'Avg Completion Time (min)',
+                        data: days.map(() => randomIntFromInterval(20, 120)),
+                        borderColor: '#36A2EB',
+                        fill: false
+                    }]
+                },
+                options: {
+                    animation: { duration: 500 },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function updatePieChart() {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Development', 'Design', 'Testing'],
+                    datasets: [{
+                        data: [randomIntFromInterval(1, 100), randomIntFromInterval(1, 100), randomIntFromInterval(1, 100)],
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
+                    }]
+                },
+                options: { animation: { animateRotate: true } }
+            });
+        }
+
+        function updateTeamCards() {
+            const team = ['Alice', 'Bob', 'Charlie', 'David'];
+            const cards = document.getElementById('teamCards');
+            cards.innerHTML = team.map(name =>
+                `<div class="card">
+                    <h3>${name}</h3>
+                    <p>Completed: ${randomIntFromInterval(1, 50)} tasks</p>
+                    <a href="#">View Task</a>
+                </div>`
+            ).join('');
+        }
+
+        // Initial and periodic updates
+        updateBarChart();
+        updateLineGraph();
+        updatePieChart();
+        updateTeamCards();
+
+        setInterval(() => {
+            updateBarChart();
+            updateLineGraph();
+            updatePieChart();
+            updateTeamCards();
+        }, 5000);
+    </script>
+</body>
+</html>

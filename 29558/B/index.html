@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Productivity Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+            color: #333;
+        }
+        body.dark-mode {
+            background-color: #333;
+            color: #ffffff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            gap: 20px;
+        }
+        .chart-container, .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .dark-mode .chart-container, .dark-mode .card {
+            background: #444;
+        }
+        #modeToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .card {
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <button id="modeToggle">Toggle Mode</button>
+    <div class="container">
+        <div class="chart-container" id="tasksCompleted"></div>
+        <div class="chart-container" id="avgCompletionTime"></div>
+        <div class="chart-container" id="taskDistribution"></div>
+        <div id="teamMembers"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script>
+        const modeToggle = document.getElementById('modeToggle');
+        modeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+        function randomData() {
+            return Math.floor(Math.random() * 100) + 10;
+        }
+
+        // Bar Chart for Tasks Completed
+        new Chart(document.getElementById('tasksCompleted').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Alice', 'Bob', 'Charlie', 'David'],
+                datasets: [{
+                    label: 'Tasks Completed',
+                    data: Array(4).fill().map(randomData),
+                    backgroundColor: 'rgba(0, 123, 255, 0.5)'
+                }]
+            },
+            options: {
+                scales: { yAxes: [{ ticks: { beginAtZero: true } }] }
+            }
+        });
+
+        // Line Graph for Average Completion Time
+        const lineData = {
+            labels: Array.from({length: 30}, (_, i) => i + 1),
+            datasets: [{
+                label: 'Average Time',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                data: Array(30).fill().map(randomData),
+                fill: false,
+            }]
+        };
+        new Chart(document.getElementById('avgCompletionTime').getContext('2d'), {
+            type: 'line',
+            data: lineData
+        });
+
+        // Pie Chart for Task Distribution
+        new Chart(document.getElementById('taskDistribution').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Development', 'Design', 'Testing'],
+                datasets: [{
+                    data: [randomData(), randomData(), randomData()],
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
+                }]
+            }
+        });
+
+        // Team Members Highlight
+        const teamMembers = ['Alice', 'Bob', 'Charlie', 'David'];
+        const teamDiv = document.getElementById('teamMembers');
+        teamMembers.forEach(name => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<h3>${name}</h3><p>Biggest Task: <span id="${name}Task">Loading...</span></p>`;
+            teamDiv.appendChild(card);
+        });
+
+        // Update data dynamically
+        setInterval(() => {
+            ['tasksCompleted', 'avgCompletionTime', 'taskDistribution'].forEach(id => {
+                const chart = Chart.instances.find(ch => ch.canvas.id === id);
+                if (chart) {
+                    chart.data.datasets.forEach(dataset => {
+                        if (id === 'taskDistribution') {
+                            dataset.data = [randomData(), randomData(), randomData()];
+                        } else {
+                            dataset.data = dataset.data.map(randomData);
+                        }
+                    });
+                    chart.update();
+                }
+            });
+
+            teamMembers.forEach(name => {
+                document.getElementById(`${name}Task`).textContent = `Completed ${randomData()} tasks`;
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
