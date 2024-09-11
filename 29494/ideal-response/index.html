@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Periodic Table</title>
+    <style>
+        body, html {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #search, #filter {
+            position: absolute;
+            top: 20px;
+            transform: translateX(-50%);
+        }
+        #search {
+            left: 50%;
+        }
+        #filter {
+            left: 85%;
+            transform: translateX(-85%);
+        }
+        #search input, #filter select {
+            padding: 10px;
+            width: 250px;
+            border-radius: 20px;
+            border: none;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #periodicTable {
+            display: grid;
+            grid-template-columns: repeat(18, 50px);
+            grid-gap: 5px;
+            margin-top: 60px;
+        }
+        .element {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .element:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.2);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            width: 300px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            z-index: 100;
+            font-size: 16px;
+        }
+        .modal.show {
+            display: block;
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        #quiz {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        #quiz button {
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="search">
+        <input type="text" id="searchInput" placeholder="Search by Name, Symbol, or Atomic Number...">
+    </div>
+    <div id="filter">
+        <select onchange="applyFilter(this.value)">
+            <option value="all">All</option>
+            <option value="metal">Metals</option>
+            <option value="nonmetal">Nonmetals</option>
+            <option value="noble gas">Noble Gases</option>
+        </select>
+    </div>
+    <div id="periodicTable"></div>
+    <div id="elementDetails" class="modal">
+        <span class="close" onclick="toggleModal(false)">&times;</span>
+        <h2 id="elementName"></h2>
+        <p><strong>Symbol:</strong> <span id="elementSymbol"></span></p>
+        <p><strong>Atomic Number:</strong> <span id="atomicNumber"></span></p>
+        <p><strong>Atomic Mass:</strong> <span id="atomicMass"></span></p>
+        <p><strong>Electron Configuration:</strong> <span id="electronConfig"></span></p>
+        <p><strong>Common Uses:</strong> <span id="commonUses"></span></p>
+    </div>
+    <div id="quiz">
+        <button onclick="startQuiz()">Start Quiz</button>
+    </div>
+    <script>
+        const elements = [
+            { name: "Hydrogen", symbol: "H", atomicNumber: 1, atomicMass: "1.008", electronConfig: "1s1", commonUses: "Water formation", type: "nonmetal" },
+            { name: "Helium", symbol: "He", atomicNumber: 2, atomicMass: "4.0026", electronConfig: "1s2", commonUses: "Balloons", type: "noble gas" },
+            { name: "Lithium", symbol: "Li", atomicNumber: 3, atomicMass: "6.94", electronConfig: "1s2 2s1", commonUses: "Batteries", type: "metal" },
+            { name: "Beryllium", symbol: "Be", atomicNumber: 4, atomicMass: "9.0122", electronConfig: "1s2 2s2", commonUses: "Missiles", type: "metal" },
+            { name: "Boron", symbol: "B", atomicNumber: 5, atomicMass: "10.81", electronConfig: "1s2 2s2 2p1", commonUses: "Detergents", type: "nonmetal" }
+        ];
+        const table = document.getElementById('periodicTable');
+        elements.forEach(el => {
+            const elemDiv = document.createElement('div');
+            elemDiv.className = 'element';
+            elemDiv.textContent = el.symbol;
+            elemDiv.title = el.name; // Tooltip to show the name on hover
+            elemDiv.dataset.type = el.type;
+            elemDiv.onclick = () => {
+                const modal = document.getElementById('elementDetails');
+                document.getElementById('elementName').textContent = el.name;
+                document.getElementById('elementSymbol').textContent = el.symbol;
+                document.getElementById('atomicNumber').textContent = el.atomicNumber;
+                document.getElementById('atomicMass').textContent = el.atomicMass;
+                document.getElementById('electronConfig').textContent = el.electronConfig;
+                document.getElementById('commonUses').textContent = el.commonUses;
+                modal.style.display = 'block';
+            };
+            table.appendChild(elemDiv);
+        });
+
+        function toggleModal(show) {
+            const modal = document.getElementById('elementDetails');
+            modal.style.display = show ? 'block' : 'none';
+        }
+
+        function applyFilter(filter) {
+            const allElements = document.querySelectorAll('.element');
+            allElements.forEach(elem => {
+                if (filter === 'all' || elem.dataset.type === filter) {
+                    elem.style.display = 'block';
+                } else {
+                    elem.style.display = 'none';
+                }
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const allElements = document.querySelectorAll('.element');
+            allElements.forEach(elem => {
+                const symbol = elem.textContent.toLowerCase();
+                const name = elem.title.toLowerCase();
+                if (symbol.includes(query) || name.includes(query)) {
+                    elem.style.display = 'block';
+                } else {
+                    elem.style.display = 'none';
+                }
+            });
+        });
+
+        function startQuiz() {
+            const randomElement = elements[Math.floor(Math.random() * elements.length)];
+            const question = document.createElement('p');
+            question.textContent = `What is the atomic number of ${randomElement.name}?`;
+            const answerInput = document.createElement('input');
+            answerInput.type = 'text';
+            const submitButton = document.createElement('button');
+            submitButton.textContent = 'Check Answer';
+            submitButton.onclick = () => {
+                if (parseInt(answerInput.value) === randomElement.atomicNumber) {
+                    alert('Correct!');
+                } else {
+                    alert('Incorrect, the correct answer was ' + randomElement.atomicNumber);
+                }
+                question.remove();
+                answerInput.remove();
+                submitButton.remove();
+            };
+            const quizDiv = document.getElementById('quiz');
+            quizDiv.appendChild(question);
+            quizDiv.appendChild(answerInput);
+            quizDiv.appendChild(submitButton);
+        }
+    </script>
+</body>
+</html>
+
+
