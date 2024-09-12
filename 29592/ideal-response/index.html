@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geography Quiz</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 400px; width: 100%; }
+        .quiz-container { display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        #question { margin: 20px; font-size: 20px; }
+        #answers { margin: 10px; }
+        #scoreboard { margin-top: 20px; }
+        @media (max-width: 768px) {
+            .quiz-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div id="map"></div>
+        <div id="question-modal" style="display: none;">
+            <p id="question"></p>
+            <div id="answers"></div>
+            <button onclick="nextQuestion()">Next Question</button>
+        </div>
+        <div id="scoreboard">Score: <span id="score">0</span></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([51.505, -0.09], 3);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const questions = [
+            { country: 'France', category: 'Capitals', question: 'What is the capital of France?', answers: [{ text: 'Paris', correct: true }, { text: 'Lyon', correct: false }] },
+            // Add more questions similarly
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+
+        function displayQuestion(question) {
+            const modal = document.getElementById('question-modal');
+            document.getElementById('question').textContent = question.question;
+            const answers = document.getElementById('answers');
+            answers.innerHTML = '';
+            question.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.textContent = answer.text;
+                button.onclick = function() { checkAnswer(answer.correct); };
+                answers.appendChild(button);
+            });
+            modal.style.display = 'block';
+        }
+
+        function checkAnswer(isCorrect) {
+            if (isCorrect) {
+                score += 10;
+                document.getElementById('score').textContent = score;
+            }
+            currentQuestion++;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length) {
+                displayQuestion(questions[currentQuestion]);
+            } else {
+                alert('Quiz finished! Your score: ' + score);
+                location.reload(); // Reset the quiz
+            }
+        }
+
+        // Mocking a click interaction on the map to trigger questions
+        map.on('click', function(e) {
+            nextQuestion(); // Simplified for example purposes
+        });
+    </script>
+</body>
+</html>

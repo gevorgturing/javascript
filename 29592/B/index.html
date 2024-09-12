@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geography Quiz Widget</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<style>
+    body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f4f4f9; }
+    #map { height: 400px; width: 100%; }
+    .quiz-container { max-width: 800px; margin: 20px auto; background: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .category-btn, .answer-btn { margin: 5px; padding: 10px; border: none; background-color: #007BFF; color: white; cursor: pointer; border-radius: 4px; }
+    .category-btn:hover, .answer-btn:hover { background-color: #0056b3; }
+    #timer, #score { font-weight: bold; color: #333; }
+    #question { margin: 20px 0; }
+    @media (max-width: 600px) {
+        .quiz-container { width: 95%; }
+        #map { height: 300px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div id="map"></div>
+    <div id="category">
+        <button class="category-btn" onclick="startQuiz('capitals')">Capitals</button>
+        <button class="category-btn" onclick="startQuiz('flags')">Flags</button>
+        <button class="category-btn" onclick="startQuiz('info')">General Info</button>
+    </div>
+    <div id="quizSection">
+        <p id="timer">Time: <span id="time">00:00</span></p>
+        <p id="question"></p>
+        <div id="answers"></div>
+        <p id="score">Score: <span id="currentScore">0</span></p>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    let map, currentCountry, quizActive = false, timer, score = 0, timeLeft = 30;
+
+    // Initialize Map
+    map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Fetch country data
+    let countriesData;
+    fetch('countries.json') // Assuming we have a JSON with country data
+        .then(response => response.json())
+        .then(data => {
+            countriesData = data;
+            data.forEach(country => {
+                L.geoJSON(country.geojson, {
+                    style: {color: '#000', weight: 1, fillColor: '#4CAF50', fillOpacity: 0.5}
+                }).on('click', function(e) {
+                    if(quizActive) selectCountry(country);
+                }).addTo(map);
+            });
+        });
+
+    function startQuiz(category) {
+        quizActive = true;
+        score = 0;
+        document.getElementById('currentScore').textContent = score;
+        generateQuestion(category);
+    }
+
+    function generateQuestion(category) {
+        // Reset timer
+        timeLeft = 30;
+        clearInterval(timer);
+        timer = setInterval(updateTime, 1000);
+
+        let country = countriesData[Math.floor(Math.random() * countriesData.length)];
+        currentCountry = country;
+        switch(category) {
+            case 'capitals':
+                document.getElementById('question').textContent = `What is the capital of ${country.name}?`;
+                generateAnswerButtons([country.capital, ...getRandomCapitals(3)]);
+                break;
+            case 'flags':
+                document.getElementById('question').textContent = `Which country does this flag belong to?`;
+                document.getElementById('question').innerHTML += `<img src="${country.flag}" alt="Flag" style="width:50px;">`;
+                generateAnswerButtons([country.name, ...getRandomCountries(3)]);
+                break;
+            case 'info':
+                // Example question, can be expanded
+                document.getElementById('question').textContent = `Which continent is ${country.name} in?`;
+                generateAnswerButtons(['Africa', 'Asia', 'Europe', 'America'].sort(() => Math.random() - 0.5));
+                break;
+        }
+    }
+
+    function generateAnswerButtons(answers) {
+        let answersDiv = document.getElementById('answers');
+        answersDiv.innerHTML = '';
+        answers.sort(() => Math.random() - 0.5).forEach(answer => {
+            let btn = document.createElement('button');
+            btn.textContent = answer;
+            btn.className = 'answer-btn';
+            btn.onclick = () => checkAnswer(answer);
+            answersDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(answer) {
+        let correctAnswer = (currentCountry.capital || currentCountry.name);
+        if (answer === correctAnswer) {
+            score++;
+            document.getElementById('currentScore').textContent = score;
+        }
+        // Here you could add feedback like changing button color or a message
+        generateQuestion(document.querySelector('.category-btn:focus').textContent.toLowerCase());
+    }
+
+    function updateTime() {
+        if(timeLeft > 0) {
+            timeLeft--;
+            document.getElementById('time').textContent = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2, '0')}`;
+        } else {
+            clearInterval(timer);
+            alert('Time up! Try again.');
+            quizActive = false;
+        }
+    }
+
+    function getRandomCapitals(n) {
+        return countriesData.sort(() => 0.5 - Math.random()).slice(0, n).map(c => c.capital);
+    }
+
+    function getRandomCountries(n) {
+        return countriesData.sort(() => 0.5 - Math.random()).slice(0, n).map(c => c.name);
+    }
+</script>
+</body>
+</html>

@@ -38,7 +38,7 @@
         }
         .section {
             margin-bottom: 20px;
-            background: white;
+            background: inherit;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             padding: 20px;
             border-radius: 8px;
@@ -56,10 +56,16 @@
             padding: 10px;
             margin: 10px 0;
             border-radius: 4px;
-            transition: background 0.3s;
+            transition: background-color 0.3s;
         }
         .card:hover {
             background: #d0d0d0;
+        }
+        .dark-mode .card {
+            background: #555;
+        }
+        .dark-mode .card:hover {
+            background: #666;
         }
     </style>
 </head>
@@ -99,10 +105,18 @@
         function toggleTheme() {
             body.classList.toggle('light-mode');
             body.classList.toggle('dark-mode');
+            updateBarChart();
+            updateLineGraph();
+            updatePieChart();
+            updateTeamCards();
         }
 
         function randomIntFromInterval(min, max) {
             return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+
+        function chartColors() {
+            return body.classList.contains('dark-mode') ? ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'] : ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
         }
 
         function updateBarChart() {
@@ -115,7 +129,7 @@
                     datasets: [{
                         label: 'Tasks Completed',
                         data: [randomIntFromInterval(10, 50), randomIntFromInterval(10, 50), randomIntFromInterval(10, 50), randomIntFromInterval(10, 50)],
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
+                        backgroundColor: chartColors()
                     }]
                 },
                 options: {
@@ -135,7 +149,7 @@
                     datasets: [{
                         label: 'Avg Completion Time (min)',
                         data: Array.from({length: 30}, () => randomIntFromInterval(20, 120)),
-                        borderColor: '#36A2EB',
+                        borderColor: chartColors()[1],
                         fill: false
                     }]
                 },
@@ -155,7 +169,7 @@
                     labels: ['Development', 'Design', 'Testing'],
                     datasets: [{
                         data: [randomIntFromInterval(1, 100), randomIntFromInterval(1, 100), randomIntFromInterval(1, 100)],
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
+                        backgroundColor: chartColors()
                     }]
                 },
                 options: { animation: { animateRotate: true } }
@@ -169,9 +183,14 @@
                 <div class="card">
                     <h3>${name}</h3>
                     <p>Completed: ${randomIntFromInterval(1, 50)} tasks</p>
-                    <a href="#">View Task</a>
+                    <a href="#" onclick="viewTaskDetails('${name}')">View Task</a>
                 </div>
             `).join('');
+        }
+
+        function viewTaskDetails(memberName) {
+            // Simulate fetching task details or navigating to a task detail page
+            alert('Displaying tasks details for ' + memberName);
         }
 
         updateBarChart();

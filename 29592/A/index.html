@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geography Quiz</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        #map {
+            width: 100%;
+            max-width: 800px;
+            height: 400px;
+            margin: auto;
+        }
+        .quiz-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .option-btn {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .scoreboard {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="quizApp" class="quiz-container">
+        <h2 class="text-center">Geography Quiz</h2>
+        <div id="map"></div>
+        <div id="quizSection" style="display: none;">
+            <h4 id="question"></h4>
+            <div id="options"></div>
+            <div id="timer" class="text-center"></div>
+        </div>
+        <div class="scoreboard text-center" id="scoreDisplay" style="display: none;">
+            Score: <span id="score">0</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="https://unpkg.com/topojson@3"></script>
+<script>
+    const quizData = {
+        // Data for countries, capitals, flags, etc. would be stored here
+    };
+
+    let currentCountry, currentQuestion, timer, score = 0;
+
+    function loadMap() {
+        d3.json('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson').then(function(world) {
+            const svg = d3.select("#map").append("svg").attr("width", "100%").attr("height", 400);
+            const projection = d3.geoMercator();
+            const path = d3.geoPath().projection(projection);
+            svg.selectAll("path")
+               .data(world.features)
+               .enter().append("path")
+               .attr("d", path)
+               .attr("class", "country")
+               .attr("fill", "#ccc")
+               .attr("stroke", "#000")
+               .on("click", selectCountry);
+        });
+    }
+
+    function selectCountry(event, d) {
+        currentCountry = d.properties.name;
+        showQuestion();
+    }
+
+    function showQuestion() {
+        // Randomly choose category and question
+        // Display question and options
+        document.getElementById('quizSection').style.display = 'block';
+        // Reset and start timer
+        startTimer(30); // 30 seconds per question
+    }
+
+    function startTimer(duration) {
+        let timeLeft = duration;
+        const timerDisplay = document.getElementById('timer');
+        timer = setInterval(() => {
+            if(timeLeft <= 0) {
+                clearInterval(timer);
+                checkAnswer(null); // Time's up
+            }
+            timerDisplay.textContent = `Time left: ${timeLeft--}s`;
+        }, 1000);
+    }
+
+    function checkAnswer(selectedAnswer) {
+        // Logic to check answer, update score, give feedback
+        // Proceed to next question or show results
+        document.getElementById('scoreDisplay').style.display = 'block';
+        score++;
+        document.getElementById('score').textContent = score;
+    }
+
+    loadMap();
+</script>
+
+</body>
+</html>
