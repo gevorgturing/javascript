@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Card Game</title>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+        margin: 0;
+    }
+    .game-container {
+        width: 90%;
+        max-width: 900px;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        background: white;
+        text-align: center;
+    }
+    #game-board {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .card {
+        width: 100px;
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: transparent;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+        position: relative;
+    }
+    .card-inner {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
+        transition: transform 0.6s;
+        transform: rotateY(0deg);
+    }
+    .card.flipped .card-inner {
+        transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+    }
+    .card-front {
+        background: #4CAF50;
+    }
+    .card-back {
+        background-color: #fff;
+        color: black;
+        transform: rotateY(180deg);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        box-sizing: border-box;
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .card.matched {
+        background-color: #8BC34A;
+        cursor: default;
+    }
+    #timer, #score {
+        font-size: 1.2em;
+        margin-top: 20px;
+    }
+    button {
+        padding: 10px 20px;
+        margin-top: 10px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Memory Card Game</h1>
+    <div id="controls">
+        <button onclick="startGame('easy')">Easy</button>
+        <button onclick="startGame('medium')">Medium</button>
+        <button onclick="startGame('hard')">Hard</button>
+        <button onclick="resetGame()">Restart</button>
+    </div>
+    <div id="timer">Time: <span id="time">00:00</span></div>
+    <div id="score">Score: <span id="currentScore">0</span></div>
+    <div id="game-board" class="grid"></div>
+</div>
+
+<script>
+    const gameBoard = document.getElementById('game-board');
+    const timerDisplay = document.getElementById('time');
+    const scoreDisplay = document.getElementById('currentScore');
+    let cards = [];
+    let flippedCards = [];
+    let matchedCards = [];
+    let timer, seconds, levelConfig, score = 0;
+
+    function startGame(difficulty) {
+        switch(difficulty) {
+            case 'easy': levelConfig = {grid: 4, time: 180, pairs: 8}; break;
+            case 'medium': levelConfig = {grid: 6, time: 120, pairs: 18}; break;
+            case 'hard': levelConfig = {grid: 8, time: 120, pairs: 32}; break;
+        }
+        resetGame();
+        createBoard();
+        startTimer();
+    }
+
+    function createBoard() {
+        gameBoard.style.gridTemplateColumns = `repeat(${levelConfig.grid}, 1fr)`;
+        cards = Array(levelConfig.pairs).fill().map((_, i) => i + 1).concat(Array(levelConfig.pairs).fill().map((_, i) => i + 1)).sort(() => Math.random() - 0.5);
+        cards.forEach((card, index) => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'card';
+            cardElement.innerHTML = `<div class="card-inner">
+                                        <div class="card-front"></div>
+                                        <div class="card-back">${card}</div>
+                                    </div>`;
+            cardElement.addEventListener('click', () => flipCard(cardElement));
+            gameBoard.appendChild(cardElement);
+        });
+    }
+
+    function flipCard(card) {
+        if(flippedCards.length < 2 && !card.classList.contains('flipped') && !card.classList.contains('matched')) {
+            card.classList.add('flipped');
+            flippedCards.push(card);
+            if(flippedCards.length === 2) {
+                setTimeout(checkForMatch, 500); // Adding delay here gives users time to see the cards
+            }
+        }
+    }
+
+    function checkForMatch() {
+        if (flippedCards.length === 2) {
+            const [firstCard, secondCard] = flippedCards;
+            if (firstCard.innerHTML === secondCard.innerHTML) {
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                matchedCards.push(firstCard, secondCard);
+                updateScore(50 - (seconds * 0.1)); // Score decreases over time
+                if (matchedCards.length === cards.length) {
+                    endGame(true);
+                }
+            } else {
+                firstCard.classList.remove('flipped');
+                secondCard.classList.remove('flipped');
+            }
+            flippedCards = [];
+        }
+    }
+
+    function updateScore(points) {
+        score += points;
+        scoreDisplay.textContent = score;
+    }
+
+    function startTimer() {
+        seconds = levelConfig.time;
+        timer = setInterval(() => {
+            if (seconds <= 0) {
+                endGame(false);
+                return;
+            }
+            seconds--;
+            timerDisplay.textContent = `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    function endGame(win) {
+        clearInterval(timer);
+        alert(win ? 'Congratulations! You won!' : 'Time\'s up! Try again.');
+    }
+
+    function resetGame() {
+        clearInterval(timer);
+        gameBoard.innerHTML = '';
+        flippedCards = [];
+        matchedCards = [];
+        score = 0;
+        scoreDisplay.textContent = '0';
+        timerDisplay.textContent = '00:00';
+    }
+</script>
+
+</body>
+</html>

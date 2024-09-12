@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Card Game</title>
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+        margin: 0;
+    }
+    .game-container {
+        text-align: center;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #game-board {
+        display: grid;
+        gap: 10px;
+        margin: 20px 0;
+    }
+    .card {
+        width: 70px;
+        height: 70px;
+        background-color: #4CAF50;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: transparent;
+        cursor: pointer;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+    }
+    .card.flip {
+        transform: rotateY(180deg);
+        background-color: #fff;
+        color: black;
+    }
+    .card.matched {
+        background-color: #8BC34A;
+        cursor: default;
+    }
+    #controls, #timer, #score {
+        margin: 10px 0;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+    }
+    @media (max-width: 768px) {
+        .card { width: 50px; height: 50px; font-size: 0.8em; }
+    }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Memory Card Game</h1>
+    <div id="controls">
+        <button onclick="startGame('easy')">Easy</button>
+        <button onclick="startGame('medium')">Medium</button>
+        <button onclick="startGame('hard')">Hard</button>
+        <button onclick="resetGame()">Restart</button>
+    </div>
+    <div id="timer">Time: <span id="time">00:00</span></div>
+    <div id="score">Score: <span id="currentScore">0</span></div>
+    <div id="game-board"></div>
+</div>
+
+<script>
+    const gameBoard = document.getElementById('game-board');
+    const timerDisplay = document.getElementById('time');
+    const scoreDisplay = document.getElementById('currentScore');
+    let cards = [];
+    let flippedCards = [];
+    let matchedCards = [];
+    let timer, seconds, levelConfig, score = 0;
+
+    function startGame(difficulty) {
+        switch(difficulty) {
+            case 'easy': levelConfig = {grid: 4, time: 180, pairs: 8}; break;
+            case 'medium': levelConfig = {grid: 6, time: 120, pairs: 18}; break;
+            case 'hard': levelConfig = {grid: 8, time: 120, pairs: 32}; break;
+        }
+        resetGame();
+        createBoard();
+        startTimer();
+    }
+
+    function createBoard() {
+        gameBoard.style.gridTemplateColumns = `repeat(${levelConfig.grid}, auto)`;
+        cards = Array(levelConfig.pairs).fill().map((_, i) => i + 1).concat(Array(levelConfig.pairs).fill().map((_, i) => i + 1)).sort(() => Math.random() - 0.5);
+        cards.forEach((card, index) => {
+            const cardElement = document.createElement('div');
+            cardElement.classList.add('card');
+            cardElement.dataset.value = card;
+            cardElement.textContent = card; // Here you could use images or different content
+            cardElement.addEventListener('click', () => flipCard(cardElement));
+            gameBoard.appendChild(cardElement);
+        });
+    }
+
+    function flipCard(card) {
+        if(flippedCards.length < 2 && !card.classList.contains('flip') && !card.classList.contains('matched')) {
+            card.classList.add('flip');
+            flippedCards.push(card);
+            if(flippedCards.length === 2) {
+                checkForMatch();
+            }
+        }
+    }
+
+    function checkForMatch() {
+        const [firstCard, secondCard] = flippedCards;
+        if(firstCard.dataset.value === secondCard.dataset.value) {
+            matchedCards.push(firstCard, secondCard);
+            updateScore(50 - (seconds * 0.1)); // Score decreases over time
+            if(matchedCards.length === levelConfig.grid * levelConfig.grid) {
+                endGame(true);
+            }
+        } else {
+            setTimeout(() => {
+                flippedCards.forEach(card => card.classList.remove('flip'));
+                flippedCards = [];
+            }, 1000);
+        }
+        flippedCards = [];
+    }
+
+    function updateScore(points) {
+        score += points;
+        scoreDisplay.textContent = score;
+    }
+
+    function startTimer() {
+        seconds = levelConfig.time;
+        timer = setInterval(() => {
+            if(seconds <= 0) {
+                endGame(false);
+                return;
+            }
+            seconds--;
+            timerDisplay.textContent = `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    function endGame(win) {
+        clearInterval(timer);
+        alert(win ? 'Congratulations! You won!' : 'Time\'s up! Try again.');
+    }
+
+    function resetGame() {
+        clearInterval(timer);
+        gameBoard.innerHTML = '';
+        flippedCards = [];
+        matchedCards = [];
+        score = 0;
+        scoreDisplay.textContent = '0';
+        timerDisplay.textContent = '00:00';
+    }
+</script>
+
+</body>
+</html>
